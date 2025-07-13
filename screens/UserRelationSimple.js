@@ -14,6 +14,8 @@ import { Picker } from '@react-native-picker/picker';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { Keyboard } from 'react-native';
 import { Platform } from 'react-native';
+import { BASE_URL } from "../utils/config";
+
 
 const UserRelationSimple = ({ route, navigation }) => {
     //const { taskStringifyed } = route.params;
@@ -26,6 +28,11 @@ const UserRelationSimple = ({ route, navigation }) => {
     const [relationUserName, setRelationUserName] = useState('');
     const [userrelation_uniqueIdentifier, setuserrelation_uniqueIdentifier] = useState('');
     //Rishon start
+
+    const cancelPress = () => {
+        navigation.navigate('HomeScreen')
+    }
+
     const setOnPress = async () => {
         const usertoken = new UserNToken(currentUsrToken.user, currentUsrToken.token)
         if (relationUserName.trim() === '') {
@@ -48,12 +55,13 @@ const UserRelationSimple = ({ route, navigation }) => {
             }
             const dictAsString = JSON.stringify(dataForAPI);
             console.log("dictAsString is ", dictAsString);
-            const response = await axios.get(`http://192.168.0.113:8000/GetUserIDgivenUserName/`, { params: { inputData: dictAsString } }, {
+            const response = await axios.get(`${BASE_URL}/GetUserIDgivenUserName/`, { params: { inputData: dictAsString } }, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
+
             if (response.data) {
                 setRelationUserID(response.data.id);
                 setRelationUserName(response.data.username);
@@ -86,7 +94,8 @@ const UserRelationSimple = ({ route, navigation }) => {
     }
 
     const onFormLoadFunction = () => {
-        console.log("this is the form load function");
+
+        //console.log("this is the form load function");
     }
 
     useEffect(() => {
@@ -110,6 +119,10 @@ const UserRelationSimple = ({ route, navigation }) => {
             />
             <TouchableOpacity style={styles.button} onPress={() => setOnPress()}>
                 <Text style={styles.buttonText}>  Set  </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={() => cancelPress()}>
+                <Text style={styles.buttonText}>  Go Back  </Text>
             </TouchableOpacity>
 
             {message_s !== '' && (

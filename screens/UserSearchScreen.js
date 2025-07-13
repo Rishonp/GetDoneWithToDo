@@ -7,6 +7,8 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { BASE_URL } from '../utils/config';
+
 
 export default function UserSearchScreen() {
 
@@ -22,7 +24,7 @@ export default function UserSearchScreen() {
   // Rishon code start
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://192.168.0.113:8000/users/', {
+      const response = await fetch(`${BASE_URL}/users/`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

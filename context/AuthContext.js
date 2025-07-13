@@ -3,6 +3,7 @@ import React, { createContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 import * as Common from "../utils/Common"
+import { BASE_URL } from '../utils/config';
 
 
 export const AuthContext = createContext();
@@ -19,7 +20,7 @@ export const AuthProvider = ({ children }) => {
         }
         try {
             myToken = new Token(access_token = oldToken, token_type = 'Bearer', tokenCreateDateTime, username = 'DefaultUser');
-            const response = await axios.get('http://192.168.0.113:8000/refreshToken/', { params: { username: "zoe" } });
+            const response = await axios.get(`${BASE_URL}/refreshToken/`, { params: { username: "zoe" } });
             return response.data.access_token;
         } catch {
             return null;
@@ -36,8 +37,8 @@ export const AuthProvider = ({ children }) => {
                 if (storedToken !== null) {
                     setToken(storedToken.token.access_token)
                     setCurrentUsrToken(storedToken)
-                    console.log("storedToken Is", storedToken.token.access_token)
-                    console.log("also storedTokenIs", storedToken)
+                    //console.log("storedToken Is", storedToken.token.access_token)
+                    //console.log("also storedTokenIs", storedToken)
                 } else {
                     console.log("Setting token as null")
                     setToken(null)

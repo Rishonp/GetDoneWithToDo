@@ -14,6 +14,7 @@ import { Picker } from '@react-native-picker/picker';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { Keyboard } from 'react-native';
 import { Platform } from 'react-native';
+import { BASE_URL } from '../utils/config';
 
 const ModifyTaskScreen = ({ route, navigation }) => {
     const { taskStringifyed } = route.params;
@@ -106,21 +107,26 @@ const ModifyTaskScreen = ({ route, navigation }) => {
     const handleSave = async () => {
         const payload = Common.getpayLoadFromMainTask(task_MainTask)
         try {
-      const response = await axios.post("http://192.168.0.113:8000/UpdateTask/", payload, {
-        headers: {
-          "Content-Type": "application/json"
+            const response = await axios.post(`${BASE_URL}/UpdateTask/`, payload, {
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            });
+
+        } catch (error) {
+            console.error('Error saving task as done ', error);
         }
-      });
-      
-    } catch (error) {
-      console.error('Error saving task as done ', error);
-    }
         // Save logic here (API call or state update)
         // After saving, go back
         //navigation.goBack();
         console.log("Saving task:", task_MainTask);
 
     };
+
+    const handleCancel = () => {
+        navigation.navigate('HomeScreen')
+    };
+
 
     // const handleSave = async () => {
     //    try{
@@ -146,9 +152,6 @@ const ModifyTaskScreen = ({ route, navigation }) => {
             setTask_MainTask({ ...task_MainTask, donestatus: 0 });
     };
 
-    const handleCancel = () => {
-        navigation.goBack();
-    };
 
     const submit = () => {
         axios
@@ -156,7 +159,7 @@ const ModifyTaskScreen = ({ route, navigation }) => {
                 `http://<YOUR_IP>:8000/tasks?token=${token}`,
                 { taskID: parseInt(taskID), taskName: name, startDate: new Date(sd), endDate: new Date(ed) }
             )
-            .then(() => navigation.navigate('Home'))
+            .then(() => navigation.navigate('HomeScreen'))
             .catch(() => Alert.alert('Error posting task'));
     };
 

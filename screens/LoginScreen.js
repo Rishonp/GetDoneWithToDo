@@ -6,8 +6,11 @@ import Token, { UserNToken } from "../utils/Token";
 import * as SecureStore from 'expo-secure-store';
 import * as Common from "../utils/Common"
 import { AuthContext } from '../context/AuthContext';
+import { BASE_URL } from '../utils/config';
+import Toast from 'react-native-toast-message';
+import { useNavigation } from '@react-navigation/native';
 
-const LoginScreen = () => {
+const LoginScreen = ({ route, navigation }) => {
     //console.log('LoginScreen rendereding... ');
     const currentUser = new Users('', '', '', '', '', 1);
     const { setToken } = useContext(AuthContext);
@@ -31,10 +34,10 @@ const LoginScreen = () => {
         const usertoken = new UserNToken(user, tkn)
         const usertoken_dict = usertoken.toDict()
         //console.log("sending1111111")
-        //console.log(usertoken_dict)
-
+        //console.log("login dict nmnmnmmnmnmnmn", usertoken_dict)
+        //console.log("BASE_URL", BASE_URL);
         axios
-            .post('http://192.168.0.113:8000/LogInUserNew1/', { params: usertoken_dict })
+            .post(`${BASE_URL}/LogInUserNew1/`, { params: usertoken_dict })
             .then((response) => {
                 setMessage("login successful..refreshing token")
                 //console.log("response!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
@@ -63,7 +66,7 @@ const LoginScreen = () => {
                 })
             })
             .catch((error) => {
-                console.log("error1111111")
+                console.log("error1111111", error)
                 if (typeof error.response !== 'undefined') {
                     if (error.response.data?.detail) {
                         setMessage(error.response.data.detail)
@@ -79,50 +82,8 @@ const LoginScreen = () => {
     }
 
 
-    const handleLoginSignUp = () => {
-        // Make sure to import axios at the top: import axios from 'axios';
-
-
-        user = Users("", username_s, "", userpass_hashed_s, "", 1)
-        tkn = Token("", "bearer", "", "", username_s)
-        usertoken = UserNToken(user, tkn)
-        axios
-            .get('http://192.168.0.113:8000/LogInUserNew1/', { params: { username: username_s } })
-            .then((response) => {
-                console.log("Got response from CheckifUserExists API:......");
-                console.log(response.data);
-                const userRet = Users.fromDict(response.data);
-                console.log("below is userRect Object");
-                console.log(userRet);
-                if (userRet.username === "") {
-                    // user not found, proceed to sign up
-                    console.log(" user not found, proceed to sign up");
-                } else {
-                    // user exists, check password
-                    console.log("User exists now checking password ");
-                    if (userRet.userpass_hashed !== userpass_hashed_s) {
-                        // password incorrect
-                        console.log("Password is incorrect, pls try again");
-                        setMessage("Password is incorrect, pls try again");
-                    } else {
-                        // login successful
-                        console.log("Login successful");
-                        setMessage("Login successful");
-                        currentUser.username = userRet.username;
-                        currentUser.useremail = userRet.useremail;
-                        currentUser.userpass_hashed = userRet.userpass_hashed;
-                        currentUser.user_createDatetime = userRet.user_createDatetime;
-                        currentUser.user_isActive = userRet.user_isActive;
-                        console.log("User is logged in successfully");
-                        //ToDO : set new JWT token and then let user move to Home screen
-                        /////navigation.navigate('HomeScreen', currentUser.toDict()); // Navigate to Home screen after successful login
-
-                    }
-                }
-            })
-            .catch((error) => {
-                Alert.alert('Error calling Axios get  ', error.response?.data?.message || 'Something went wrong');
-            });
+    const handleSignUp = () => {
+        navigation.navigate('SignUp');
     }
 
 
@@ -156,11 +117,11 @@ const LoginScreen = () => {
                 <Text style={[styles.message, styles.messageSuccess]}>{message_s}</Text>
             )}
 
-            <TouchableOpacity style={styles.button} onPress={handleTheLogin}>
+            <TouchableOpacity style={styles.button} onPress={() => handleTheLogin()}>
                 <Text style={styles.buttonText}>Login</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button} onPress={handleLoginSignUp}>
+            <TouchableOpacity style={styles.button} onPress={() => handleSignUp()}>
                 <Text style={styles.buttonText}>Sign Up</Text>
             </TouchableOpacity>
 

@@ -6,6 +6,7 @@ import Users from "../utils/Users";
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Image } from 'react-native';
 import { MainTasks } from '../utils/Users';
+import { BASE_URL } from '../utils/config';
 
 //import CreateTaskScreen from './CreateTaskScreen';
 //import ModifyTaskScreen from './ModifyTaskScreen';
@@ -51,14 +52,14 @@ const HomeScreen = () => {
     const getTaskData = async () => {
       console.log("Inside Get task data....")
       try {
-        const response = await axios.get('http://192.168.0.113:8000/getalltasksforuser/', { params: { inputData: '7820f61f-2aa6-4a2c-8293-d2ed645c2e2b||||2025-10-10 00:00:00' } });
+        const response = await axios.get('${BASE_URL}/getalltasksforuser/', { params: { inputData: '7820f61f-2aa6-4a2c-8293-d2ed645c2e2b||||2025-10-10 00:00:00' } });
         //console.log(response)
         if (response !== null && response.data !== null) {
-          console.log(response.data)
-          console.log(response.data.length)
-          console.log(response.data[0])
+          //console.log(response.data)
+          //console.log(response.data.length)
+          //console.log(response.data[0])
           taskInstances = response.data.map(item => MainTasks.fromDict(item));
-          console.log(taskInstances[0])
+          //console.log(taskInstances[0])
           setTasks(taskInstances);
         } else {
           console.log("We have a problem OR response is empty")

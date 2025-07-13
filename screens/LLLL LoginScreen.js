@@ -4,7 +4,7 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { AuthContext } from '../context/AuthContext'; // Assuming AuthContext is defined in context/AuthContext.js
 import Users from '../utils/Users'; // Assuming Users is a utility file for user-related functions   
-
+import { BASE_URL } from "../utils/config";
 
 const LoginScreen = async () => {
     console.log('LoginScreen rendereding 1');
@@ -23,7 +23,7 @@ const LoginScreen = async () => {
 
     const handleLoginSignUp = () => {
         axios
-            .get('http://192.168.0.113:8000/CheckifUserExists/', { params: { username: username } })
+            .get(`${BASE_URL}/CheckifUserExists/`, { params: { username: username } })
             .then((response) => {
 
                 console.log("Got response from CheckifUserExists API:......");

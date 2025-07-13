@@ -26,6 +26,13 @@ export const getpayLoadFromMainTask = (mainTask) => {
 
 
 export const convertDateToStringDDMMYYYYHHMMSS = (date) => {
+    if (!(date instanceof Date)) {
+        console.log("EWRRORRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR", typeof date);
+        date = new Date();
+    }
+    //console.log("convertDateToStringDDMMYYYYHHMMSS called with date", typeof date);
+    //console.log("convertDateToStringDDMMYYYYHHMMSS called with date", date);
+    //console.log("convertDateToStringDDMMYYYYHHMMSS called with date", date instanceof Date);
     date.setDate(date.getDate() + 1); // Add one day
 
     const dayOfMonth = date.getDate();
@@ -62,12 +69,15 @@ export const convertDateToStringDDMMYYYYHHMMSS = (date) => {
     // console.log("convertDateToStringDDMMYYYYHHMMSS", day, month, year, hours, minutes, seconds);
     // return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
 }
+
+/* Duplicate deleteUserTokenInMobile removed */
+
 export const storeUserTokenInMobile_Dict = async (usrTknDict) => {
     let stringDict = JSON.stringify(usrTknDict)
     try {
-        console.log("About to Store to Secure Store", stringDict)
+        //console.log("About to Store to Secure Store", stringDict)
         await SecureStore.setItemAsync('token', stringDict);
-        console.log(" Secure Store Succesful ")
+        //console.log(" Secure Store Succesful ")
         return usrTknDict
     } catch (error) {
         console.log("error storing  token", error)
@@ -86,6 +96,21 @@ export const retrieveUserTokenInMobile = async () => {
     }
 };
 
+
+export const deleteUserTokenInMobile = async () => {
+    //console.log("deleteUserTokenInMobile BEING CALLED!!!! ")
+    try {
+
+        await SecureStore.deleteItemAsync('token');
+        console.log("token sucesfully deleted")
+        return true
+    } catch (error) {
+        console.log("error deleting token", error)
+        return false
+    }
+};
+
+
 export const getCurentDateAsStringYYMMDDHHMMSS_Plus_2_Months = () => {
     let now = new Date();
     now.setMonth(now.getMonth() + 2);
@@ -99,15 +124,3 @@ export const getCurentDateAsStringYYMMDDHHMMSS_Plus_2_Months = () => {
     return String(formattedDate)
 };
 
-export const deleteUserTokenInMobile = async () => {
-    console.log("deleteUserTokenInMobile BEING CALLED!!!! ")
-    try {
-
-        await SecureStore.deleteItemAsync('token');
-        console.log("token sucesfully deleted")
-        return true
-    } catch (error) {
-        console.log("error deleting token", error)
-        return false
-    }
-};
