@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { View, TextInput, Button, Text, StyleSheet, Alert, TouchableOpacity, Switch, FlatList } from 'react-native';
 import axios from 'axios';
 import Users from "../utils/Users";
@@ -8,13 +8,14 @@ import * as Common from "../utils/Common"
 import { AuthContext } from '../context/AuthContext';
 import { MainTasks } from '../utils/Users';
 import Toast from 'react-native-toast-message';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 //import DateTimePicker from '@react-native-community/datetimepicker';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { Keyboard } from 'react-native';
 import { Platform } from 'react-native';
 import { BASE_URL } from '../utils/config';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const AddTask = ({ route, navigation }) => {
     const { currentUsrToken } = useContext(AuthContext);
@@ -29,6 +30,7 @@ const AddTask = ({ route, navigation }) => {
         startdatetime: new Date(),
         enddatetime: new Date(),
         donestatus: 0,
+        donestatus_datetime: new Date(),
         remarks: '',
         addedby_userid: currentUsrToken.user.userid,
         addedby_datetime: new Date(),
@@ -39,33 +41,45 @@ const AddTask = ({ route, navigation }) => {
     const [relationList, setRelationList] = useState([]);
     const [showStartPicker, setShowStartPicker] = useState(false);
     const [showEndPicker, setShowEndPicker] = useState(false);
+
+    const [showStartPicker_time, setShowStartPicker_time] = useState(false);
+    const [showEndPicker_time, setShowEndPicker_time] = useState(false);
+
     const [selectedId, setSelectedId] = useState(null); // this is for the selected item in FlatList of relationships - this is the unique Identifier
     const [selectedId_relation, setSelectedId_relation] = useState(null); // this is for the selected item in FlatList of relationships - this is the relation ID
 
 
+
+
     const handleSave = async () => {
-        console.log("Saving task:", theTask);
+        console.log("Saving task with start date", theTask.startdatetime);
         if (selectedId == null || selectedId === undefined || selectedId === '') {
+            // this means user has not selected any relation from the list
             // no need to do anything as task will be added for self
+            // hence addedby_userid will be empty
             console.log("selectedId is null or undefined or empty, hence adding task for self");
             theTask.addedby_userid = ""
-            theTask.addedby_datetime = None
+            theTask.addedby_datetime = new Date();
         } else {
             // add task for that Guy
             theTask.userid = selectedId_relation;
             theTask.addedby_userid = currentUsrToken.user.userid;
             theTask.addedby_datetime = new Date();
         }
+        theTask.donestatus_datetime = new Date(); // just store some date time
 
 
-
-        const payload = Common.getpayLoadFromMainTask(theTask)
+        //console.log("start date time before conversion", theTask.startdatetime);
+        //console.log("start date time with ToLocale conversion", theTask.startdatetime.toLocaleString());
+        const payload = Common.getpayLoadFromMainTask111(theTask)
+        //console.log("Sending data to server", payload);
         try {
             const response = await axios.post(`${BASE_URL}/AddTask/`, payload, {
                 headers: {
                     "Content-Type": "application/json"
                 }
             });
+            //console.log("response is ", response);
             if (response.status === 200) {
                 Toast.show({
                     type: 'success',
@@ -74,6 +88,7 @@ const AddTask = ({ route, navigation }) => {
                 });
                 navigation.navigate('HomeScreen');
             } else {
+                console.error('Error adding task ', response);
                 Toast.show({
                     type: 'error',
                     text1: 'Failed to Add Task',
@@ -83,11 +98,6 @@ const AddTask = ({ route, navigation }) => {
         } catch (error) {
             console.error('Error saving task as done ', error);
         }
-        // Save logic here (API call or state update)
-        // After saving, go back
-        //navigation.goBack();
-        console.log("Saving task:", theTask);
-
     };
 
     const handleCancel = () => {
@@ -97,6 +107,22 @@ const AddTask = ({ route, navigation }) => {
 
 
     const OnPageLoad = async () => {
+        setTheTask({
+            userid: currentUsrToken.user.userid,
+            tasktext: '',
+            addtocal: 0,
+            priority: 0,
+            startdatetime: new Date(),
+            enddatetime: new Date(),
+            donestatus: 0,
+            donestatus_datetime: new Date(),
+            remarks: '',
+            addedby_userid: currentUsrToken.user.userid,
+            addedby_datetime: new Date(),
+            uniqueidentifyer: '',
+            taskack: 0,
+            taskack_datetime: new Date(),
+        });
         // api call to fetch user names who have consented to relatiopnship
         const usertoken = new UserNToken(currentUsrToken.user, currentUsrToken.token)
         try {
@@ -114,13 +140,13 @@ const AddTask = ({ route, navigation }) => {
             });
             if (response.data) {
                 setRelationList(response.data);
-                console.log("Response data is ", response.data);
+                //console.log("Response data is ", response.data);
                 //console.log("Response data length ", response.data.length);
-                Toast.show({
-                    type: 'success',
-                    text1: 'User found',
-                    text2: `Found user: ${response.data.username}`,
-                });
+                // Toast.show({
+                //     type: 'success',
+                //     text1: 'User found',
+                //     text2: `Found user: ${response.data.username}`,
+                // });
             }
 
         } catch (error) {
@@ -140,36 +166,98 @@ const AddTask = ({ route, navigation }) => {
 
 
     };
+
+
+    // Refresh tasks when screen comes into focus
+    useFocusEffect(
+        React.useCallback(() => {
+            OnPageLoad();
+        }, [])
+    );
+
     useEffect(() => {
         OnPageLoad()
         //ToDO call function to load user name of added by user 
     }, []);
 
-    const handleConfirmStartPicker = (date) => {
-        //not sure why date picker returns a date with one day more than selected. Hence the -1
-        //console.log("handleConfirmStartPicker called with date", date);
-        let tempdate = new Date(date);
-        ////////// tempdate.setDate(tempdate.getDate() - 1);
-        //console.log("handleConfirmStartPicker called with date", tempdate);
-        setTheTask({ ...theTask, startdatetime: tempdate });
-        hideStartDatePicker();
+
+    const handleConfirmStartPicker_time = (selectedTime) => {
+        hideStartTimePicker();
+        let msg = Common.validateStartDateAndEndDate(theTask.startdatetime, Common.SlidedDateTime(theTask.startdatetime, selectedTime));
+        if (msg.length > 0) {
+            Alert.alert("Error", msg);
+            return;
+        }
+        theTask.startdatetime = Common.SlidedDateTime(theTask.startdatetime, selectedTime);
+        setTheTask({ ...theTask, startdatetime: theTask.startdatetime });
     };
 
+
+    const handleConfirmEndPicker_time = (selectedTime) => {
+        hideEndTimePicker();
+        let msg = Common.validateStartDateAndEndDate(theTask.startdatetime, Common.SlidedDateTime(theTask.enddatetime, selectedTime));
+        if (msg.length > 0) {
+            Alert.alert("Error", msg);
+            return;
+        }
+        theTask.enddatetime = Common.SlidedDateTime(theTask.enddatetime, selectedTime);
+        setTheTask({ ...theTask, enddatetime: theTask.enddatetime });
+    };
+
+
+
+    const handleConfirmStartPicker = (date) => {
+        hideStartDatePicker();
+        // we ned to pick only the date part and not the time part 
+        let actualPickedDate = Common.takeDateFromOneAndTimeFromOther(date, theTask.startdatetime);
+        let msg = Common.validateStartDateAndEndDate(actualPickedDate, theTask.enddatetime);
+        if (msg.length > 0) {
+            Alert.alert("Error", msg);
+            return;
+        }
+
+        setTheTask({ ...theTask, startdatetime: actualPickedDate });
+    };
+
+    const handleConfirmEndPicker = (date) => {
+        hideEndDatePicker();
+        let actualPickedDate = Common.takeDateFromOneAndTimeFromOther(date, theTask.enddatetime);
+        let msg = Common.validateStartDateAndEndDate(theTask.startdatetime, actualPickedDate);
+        if (msg.length > 0) {
+            Alert.alert("Error", msg);
+            return;
+        }
+        setTheTask({ ...theTask, enddatetime: actualPickedDate });
+    };
     const showStartDatePicker = () => {
         setTheTask({ ...theTask, startdatetime: theTask.startdatetime || new Date() })
         setShowStartPicker(true);
     };
+    const showStartTimePicker = () => {
+        setTheTask({ ...theTask, startdatetime: theTask.startdatetime || new Date() })
+        setShowStartPicker_time(true);
+    };
+
+    const showEndTimePicker = () => {
+        setTheTask({ ...theTask, enddatetime: theTask.enddatetime || new Date() })
+        setShowEndPicker_time(true);
+    };
+
+
+
+    const hideStartTimePicker = () => {
+        setShowStartPicker_time(false);
+    };
+
+    const hideEndTimePicker = () => {
+        setShowEndPicker_time(false);
+    };
+
     const hideStartDatePicker = () => {
         setShowStartPicker(false);
     };
 
-    const handleConfirmEndPicker = (date) => {
-        //not sure why date picker returns a date with one day more than selected. Hence the -1
-        let tempdate = new Date(date);
-        tempdate.setDate(tempdate.getDate() - 1);
-        setTheTask({ ...theTask, enddatetime: tempdate });
-        hideEndDatePicker();
-    };
+
 
     const showEndDatePicker = () => {
         setTheTask({ ...theTask, enddatetime: theTask.enddatetime || new Date() })
@@ -201,7 +289,7 @@ const AddTask = ({ route, navigation }) => {
     const renderItem = ({ item }) => (
         <View style={styles.container}>
             <TouchableOpacity onPress={() => selectDeselectItem(item)}>
-                <View style={[styles.item, selectedId === item.Userrelation.uniqueidentifyer && styles.selectedItem]}>
+                <View style={[styles.itemContainer, selectedId === item.Userrelation.uniqueidentifyer && styles.selectedItem]}>
                     <Text style={styles.text}>{item.name}</Text>
                 </View>
             </TouchableOpacity>
@@ -217,63 +305,112 @@ const AddTask = ({ route, navigation }) => {
                         style={styles.input}
                         value={theTask.tasktext}
                         onChangeText={(text) => setTheTask({ ...theTask, tasktext: text })}
-                        placeholder="Task Text"
+                        placeholder="the Task..."
                     />
 
                     <View style={styles.row}>
                         <Text style={styles.largeText}>Done?</Text>
-                        <Switch style={styles.switch} value={theTask.donestatus == 1 ? true : false} onValueChange={(value) => setTheTask({ ...theTask, donestatus: value == true ? 1 : 0 })} />
-                    </View>
-                    <View style={styles.pickerWrapper}>
-                        <Picker
-                            selectedValue={theTask.priority}
-                            style={styles.picker}
-                            onValueChange={(itemValue) => setTheTask({ ...theTask, priority: itemValue })}>
-                            <Picker.Item label="P0" value={0} />
-                            <Picker.Item label="P1" value={1} />
-                            <Picker.Item label="P2" value={2} />
-                        </Picker>
+
+                        {/* <Switch style={styles.switch} value={theTask.donestatus == 1 ? true : false} onValueChange={(value) => setTheTask({ ...theTask, donestatus: value == true ? 1 : 0 })} /> */}
+
+                        <Switch
+                            style={styles.switch}
+                            value={theTask.donestatus == 1 ? true : false}
+                            onValueChange={(value) => setTheTask({ ...theTask, donestatus: value == true ? 1 : 0 })}
+                            trackColor={{
+                                false: '#FDECEA', // Bright red when off
+                                true: '#E8F5E8'   // Material green when on
+                            }}
+                            thumbColor={theTask.donestatus == 1 ? 'grey' : 'grey'} // White thumb always
+                            ios_backgroundColor="#FDECEA" // iOS background when off
+                        />
+
+
+
                     </View>
 
                     <View style={styles.row}>
-                        <Text style={styles.largeText}>Start Date</Text>
-                        <TouchableOpacity style={styles.button_datetime} onPress={() => showStartDatePicker()}>
-                            <Text style={styles.buttonText}>{Common.convertDateToStringDDMMYYYYHHMMSS(theTask.startdatetime)}</Text>
+                        <Text style={styles.largeText}>Priority          </Text>
+                        <View style={styles.verticallyCentered}>
+                            <View style={[
+                                styles.pickerWrapper,
+                                { backgroundColor: theTask.priority === 0 ? '#FDECEA' : '#E8F5E8' }
+                            ]}>
+                                <Picker
+                                    selectedValue={theTask.priority}
+                                    style={styles.picker}
+                                    onValueChange={(itemValue) => setTheTask({ ...theTask, priority: itemValue })}>
+                                    <Picker.Item label="P0" value={0} />
+                                    <Picker.Item label="P1" value={1} />
+                                    <Picker.Item label="P2" value={2} />
+                                </Picker>
+                            </View>
+
+                        </View>
+
+                    </View>
+                    <View style={styles.row}>
+                        <Text style={styles.largeText}>Start</Text>
+                        <TouchableOpacity style={styles.buttonStart} onPress={() => showStartDatePicker()} onLongPress={() => showStartTimePicker()} >
+                            <Icon name="today" size={20} color="black" style={{ marginRight: 6 }} />
+                            <Text style={styles.buttonTextBlack}>{Common.formatToLocalDateString_inputIsDataObj(theTask.startdatetime)}</Text>
                         </TouchableOpacity>
 
                         <DateTimePickerModal
                             isVisible={showStartPicker}
                             mode="date"
+                            date={theTask.startdatetime}
                             onConfirm={handleConfirmStartPicker}
                             onCancel={hideStartDatePicker}
                         />
+                        <DateTimePickerModal
+                            isVisible={showStartPicker_time}
+                            mode="time"
+                            date={theTask.startdatetime}
+                            onConfirm={handleConfirmStartPicker_time}
+                            onCancel={hideStartTimePicker}
+                        />
+
                     </View>
 
                     <View style={styles.row}>
-                        <Text style={styles.largeText}>End Date</Text>
-                        <TouchableOpacity style={styles.button_datetime} onPress={() => showEndDatePicker()}>
-                            <Text style={styles.buttonText}>{Common.convertDateToStringDDMMYYYYHHMMSS(theTask.enddatetime)}</Text>
+                        <Text style={styles.largeText}>Finish</Text>
+                        <TouchableOpacity style={styles.buttonEnd} onPress={() => showEndDatePicker()} onLongPress={() => showEndTimePicker()}>
+                            <Icon name="event" size={20} color="black" style={{ marginRight: 6 }} />
+                            <Text style={styles.buttonTextBlack}>{Common.formatToLocalDateString_inputIsDataObj(theTask.enddatetime)}</Text>
                         </TouchableOpacity>
 
                         <DateTimePickerModal
                             isVisible={showEndPicker}
                             mode="date"
+                            date={theTask.enddatetime}
                             onConfirm={handleConfirmEndPicker}
                             onCancel={hideEndDatePicker}
                         />
+
+                        <DateTimePickerModal
+                            isVisible={showEndPicker_time}
+                            mode="time"
+                            date={theTask.enddatetime}
+                            onConfirm={handleConfirmEndPicker_time}
+                            onCancel={hideEndTimePicker}
+                        />
+
                     </View>
                     <TextInput
                         style={styles.input}
                         value={theTask.remarks}
                         onChangeText={(text) => setTheTask({ ...theTask, remarks: text })}
-                        placeholder="Remarks"
+                        placeholder="additional remarks..."
                     />
 
                     <View style={styles.row}>
-                        <TouchableOpacity style={styles.button_datetime} onPress={() => handleSave()}>
+                        <TouchableOpacity style={styles.editButton} onPress={() => handleSave()}>
+                            <Icon name="add" size={20} color="#fff" style={{ marginRight: 6 }} />
                             <Text style={styles.buttonText}>  Add  </Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.button_datetime} onPress={() => handleCancel()}>
+                        <TouchableOpacity style={styles.editButton} onPress={() => handleCancel()}>
+                            <Icon name="cancel" size={20} color="#fff" style={{ marginRight: 6 }} />
                             <Text style={styles.buttonText}>  Cancel  </Text>
                         </TouchableOpacity>
                     </View>
@@ -282,12 +419,25 @@ const AddTask = ({ route, navigation }) => {
 
             </View>
             <View style={styles.bottomSection}>
-                <Text style={styles.message}>You can add for ...</Text>
-                <FlatList
-                    data={relationList}
-                    keyExtractor={(item) => item.Userrelation.uniqueidentifyer}
-                    renderItem={renderItem}
-                />
+                <View style={styles.containerFlatList}>
+
+                    {relationList && relationList.length > 0 && (
+                        <>
+                            <Text style={styles.message}>You can add for ...</Text>
+                            <FlatList
+                                data={relationList}
+                                keyExtractor={(item) => item.Userrelation.uniqueidentifyer}
+                                renderItem={renderItem}
+                            />
+                        </>
+                    )}
+                    {relationList && relationList.length == 0 && (
+                        <>
+                            <Text style={styles.smallText}>Add relations of your friends/ family so that  you can add tasks for them. Click on UserRelation icon below !</Text>
+                        </>
+                    )}
+                </View>
+
 
             </View>
         </View>
@@ -300,6 +450,32 @@ const AddTask = ({ route, navigation }) => {
 
 export default AddTask;
 const styles = StyleSheet.create({
+
+    containerWBorder: {
+        flex: 1,
+        justifyContent: 'top',
+        padding: 2,
+        backgroundColor: '#fff',
+        width: '100%',
+        marginVertical: 1,
+        borderColor: 'black',
+        borderWidth: 1,
+        borderRadius: 20,         // Optional: rounded corners
+    },
+    largeText: {
+        textAlign: 'center',
+        fontSize: 16,
+    },
+
+    containerFlatList: {
+        flex: 1,
+        justifyContent: 'top',
+        padding: 2,
+        backgroundColor: '#fff',
+        width: '100%', // Ensure full width
+        marginVertical: 1
+    },
+
     container: {
         flex: 1,
         justifyContent: 'top',
@@ -312,6 +488,14 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontSize: 16,
     },
+
+    smallText: {
+        textAlign: 'center',
+        fontSize: 14,
+        marginBottom: 20,
+    },
+
+
 
     message: {
         textAlign: 'center',
@@ -332,10 +516,10 @@ const styles = StyleSheet.create({
     },
     input: {
         height: 58,
-        borderColor: '#ccc',
+        borderColor: 'black',
         borderWidth: 1,
         marginBottom: 20,
-        borderRadius: 8,
+        borderRadius: 20,
         paddingHorizontal: 12,
         fontSize: 16,
         color: '#000',
@@ -344,18 +528,31 @@ const styles = StyleSheet.create({
         height: 58,
         borderColor: 'black',
         borderWidth: 1,
-        marginBottom: 20,
+        marginBottom: 5,
         borderRadius: 8,
-        paddingHorizontal: 12,
-        fontSize: 16,
+        paddingHorizontal: 5,
+        fontSize: 14,
+        fontWeight: '600',
         color: '#000',
+    },
+    verticallyCentered: {
+        justifyContent: 'center',
+        alignItems: 'center', //
+
     },
     pickerWrapper: {
         borderWidth: 1,
         borderColor: '#888',
-        borderRadius: 5,
+        borderRadius: 20,
         overflow: 'hidden', // Prevents Picker from spilling out
-        height: 58, // Ensures consistent height
+        height: 44, // Ensures consistent height
+        // flex: .25, // Take available space in the row
+        backgroundColor: '#f0f0f0',
+        //justifyContent: 'center', // Centers vertically
+        //alignItems: 'center', //
+        width: '150',
+        fontSize: 14,
+        fontWeight: '600',
     },
     button_datetime: {
         backgroundColor: 'blue',
@@ -364,21 +561,61 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
 
+    buttonStart: {
+        backgroundColor: '#E8F5E8',
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 20, // Rounded corners
+        alignSelf: 'flex-start',
+        flexDirection: 'row',
+        alignItems: 'center',
+
+    },
+
+    buttonEnd: {
+        backgroundColor: '#FDECEA',
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 20, // Rounded corners
+        alignSelf: 'flex-start',
+        flexDirection: 'row',
+        alignItems: 'center',
+
+    },
+
+    editButton: {
+        backgroundColor: '#2196F3',
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 20, // Rounded corners
+        alignSelf: 'flex-start',
+        flexDirection: 'row',
+        alignItems: 'center',
+
+    },
+
+    buttonTextBlack: {
+        color: 'black', // Black text
+        fontSize: 14,
+        fontWeight: '600',
+    },
+
+    buttonText: {
+        color: '#fff', // White text
+        fontSize: 14,
+        fontWeight: '600',
+    },
+
     button: {
         backgroundColor: '#1e90ff',
         paddingVertical: 14,
         borderRadius: 8,
         alignItems: 'center',
     },
-    buttonText: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: '500',
-    },
     row: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, justifyContent: 'space-between' },
     switch: { transform: [{ scaleX: 1.5 }, { scaleY: 1.5 }], },
     middleSection: {
-        flex: 8, // 80%
+        flex: 6, // 80%
         backgroundColor: '#d1ecf1',
         justifyContent: 'center',
         alignItems: 'center',
@@ -389,15 +626,46 @@ const styles = StyleSheet.create({
         margin: 2,              // Optional: space outside the border
     },
     bottomSection: {
-        flex: 2, // 10%
+        flex: 4, // 10%
         backgroundColor: 'white',
         borderWidth: 1,          // Thickness of the border
         borderColor: 'black',    // Border color
         borderRadius: 5,         // Optional: rounded corners
         justifyContent: 'center',
         alignItems: 'center',
+        padding: 5,
     },
     selectedItem: {
         backgroundColor: 'lightgreen',
     },
+
+    flatListStyle: {
+        width: '100%', // Take full width
+        flex: 1, // Take available vertical space
+    },
+    flatListContent: {
+        width: '100%', // Ensure content takes full width
+        paddingHorizontal: 0, // Remove any horizontal padding
+    },
+    item: {
+        width: '100%', // Full width
+        padding: 10,
+        backgroundColor: '#f0f0f0',
+        marginVertical: 2,
+        borderRadius: 5,
+    },
+    text: {
+        fontSize: 16,
+        textAlign: 'center', // Center the text
+    },
+    itemContainer: {
+        width: '100%',
+        padding: 12,
+        backgroundColor: '#f0f0f0',
+        marginVertical: 2,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#ddd',
+    },
+
 });

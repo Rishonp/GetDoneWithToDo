@@ -2,6 +2,38 @@ import { UserNToken } from "./Token"
 import * as SecureStore from 'expo-secure-store';
 
 
+
+export const getpayLoadFromMainTask111 = (mainTask) => {
+    //console.log("Creating payload from mainTask:", mainTask);
+    //console.log(typeof mainTask.startdatetime, mainTask.startdatetime instanceof Date);
+    //console.log(mainTask.startdatetime.hasOwnProperty("toISOString"));
+    //console.log(mainTask.startdatetime.toISOString());
+
+
+    const payload = {
+        params: {
+            userid: mainTask.userid,
+            tasktext: mainTask.tasktext,
+            addtocal: mainTask.addtocal,
+            priority: mainTask.priority,
+            startdatetime: mainTask.startdatetime.toISOString(),
+            enddatetime: mainTask.enddatetime.toISOString(),
+            donestatus: mainTask.donestatus,
+            donestatus_datetime: mainTask.donestatus_datetime.toISOString(),
+            remarks: mainTask.remarks,
+            addedby_userid: mainTask.addedby_userid,
+            addedby_datetime: mainTask.addedby_datetime.toISOString(),
+            uniqueidentifyer: mainTask.uniqueidentifyer,
+            taskack: mainTask.taskack,
+            taskack_datetime: mainTask.taskack_datetime.toISOString(),
+            donestatus_datetime: mainTask.donestatus_datetime.toISOString()
+        }
+    };
+    return payload;
+}
+
+
+
 export const getpayLoadFromMainTask = (mainTask) => {
     const payload = {
         params: {
@@ -12,6 +44,7 @@ export const getpayLoadFromMainTask = (mainTask) => {
             startdatetime: mainTask.startdatetime,
             enddatetime: mainTask.enddatetime,
             donestatus: mainTask.donestatus,
+            donestatus_datetime: mainTask.donestatus_datetime,
             remarks: mainTask.remarks,
             addedby_userid: mainTask.addedby_userid,
             addedby_datetime: mainTask.addedby_datetime,
@@ -24,6 +57,27 @@ export const getpayLoadFromMainTask = (mainTask) => {
     return payload;
 }
 
+
+export const serverDatetoUTCDate = (inDate) => {
+    if (!(inDate instanceof Date)) {
+        console.log("EWRROR", typeof inDate);
+        return null
+    }
+    if (!inDate) {
+        console.log("EWRROR !inDate", inDate);
+        return null;
+    }
+    const year = inDate.getFullYear();
+    const month = String(inDate.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+    const day = String(inDate.getDate()).padStart(2, '0');  // Day of the month
+    const hours = String(inDate.getHours()).padStart(2, '0');   // Hours
+    const minutes = String(inDate.getMinutes()).padStart(2, '0'); // Minutes
+    const seconds = String(inDate.getSeconds()).padStart(2, '0'); // Seconds
+    //const milliseconds = String(inDate.getMilliseconds()).padStart(3, '0'); // Milliseconds
+    stringDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}Z`;
+    tmpDate = new Date(stringDate);
+    return tmpDate
+};
 
 export const convertDateToStringDDMMYYYYHHMMSS = (date) => {
     if (!(date instanceof Date)) {
@@ -71,6 +125,19 @@ export const convertDateToStringDDMMYYYYHHMMSS = (date) => {
 }
 
 /* Duplicate deleteUserTokenInMobile removed */
+
+export const formatToLocalDateString_inputIsDataObj = (date) => {
+    if (!date) return '';
+    if (!(date instanceof Date)) return '';
+    return date.toLocaleString(); // Local formata
+};
+
+export const formatToUTCString__inputIsDataObj = (date) => {
+    if (!date) return '';
+    if (!(date instanceof Date)) return '';
+    return date.toISOString(); // Native JS Date in UTC
+};
+
 
 export const storeUserTokenInMobile_Dict = async (usrTknDict) => {
     let stringDict = JSON.stringify(usrTknDict)
@@ -124,3 +191,69 @@ export const getCurentDateAsStringYYMMDDHHMMSS_Plus_2_Months = () => {
     return String(formattedDate)
 };
 
+export const SlidedDateTime = (sourceDate, sourceTime) => {
+    //console.log("SlidedDateTime called with sourceDate", sourceDate, "sourceTime", sourceTime);
+    try {
+        console.log("inside try block of SlidedDateTime");
+        sourceDate.setUTCHours(sourceTime.getUTCHours());
+        sourceDate.setUTCMinutes(sourceTime.getUTCMinutes());
+        sourceDate.setUTCSeconds(sourceTime.getUTCSeconds());
+        sourceDate.setUTCMilliseconds(sourceTime.getUTCMilliseconds());
+        console.log("SlidSlidedDateTime returning with ", sourceDate);
+        return sourceDate;
+    } catch (error) {
+        console.error("Error in SlidedDateTime:", error);
+        console.log("SlidSlidedDateTime returning with nothing ");
+        return null;
+    }
+};
+
+
+export const validateStartDateAndEndDate = (startDate, endDate) => {
+    if (startDate instanceof Date === false || endDate instanceof Date === false) {
+        return "Invalid Date Passed "; // Invalid if either date is missing
+    }
+    if (!startDate || !endDate) {
+        return "Empty Date Passed"; // Invalid if either date is missing
+    }
+    if (endDate < startDate) {
+        return "End date cannot be earlier than start date"; // Invalid if start date is after end date
+    }
+    return ""; // Valid dates
+};
+
+
+
+export const takeDateFromOneAndTimeFromOther = (date_date, date_time) => {
+    let combinedDate = new Date(date_date);
+    combinedDate.setFullYear(date_date.getFullYear());
+    combinedDate.setMonth(date_date.getMonth());
+    combinedDate.setDate(date_date.getDate());
+    combinedDate.setUTCHours(date_time.getUTCHours());
+    combinedDate.setUTCMinutes(date_time.getUTCMinutes());
+    combinedDate.setUTCSeconds(date_time.getUTCSeconds());
+    combinedDate.setUTCMilliseconds(date_time.getUTCMilliseconds());
+    return combinedDate;
+};
+
+
+export const takeDateFromOneAndTimeFromOther_V2 = (date_date, date_time) => {
+    let combinedDate = new Date(date_date);
+    combinedDate.setFullYear(date_date.getFullYear());
+    combinedDate.setMonth(date_date.getMonth());
+    combinedDate.setDate(date_date.getDate());
+    combinedDate.setHours(date_time.getHours());
+    combinedDate.setMinutes(date_time.getMinutes());
+    combinedDate.setSeconds(date_time.getSeconds());
+    combinedDate.setMilliseconds(date_time.getMilliseconds());
+    return combinedDate;
+};
+
+
+export const toProperCase = (str) => {
+    return str
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}

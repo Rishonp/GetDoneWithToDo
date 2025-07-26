@@ -9,6 +9,7 @@ import { AuthContext } from '../context/AuthContext';
 import { BASE_URL } from '../utils/config';
 import Toast from 'react-native-toast-message';
 import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const LoginScreen = ({ route, navigation }) => {
     //console.log('LoginScreen rendereding... ');
@@ -117,13 +118,21 @@ const LoginScreen = ({ route, navigation }) => {
                 <Text style={[styles.message, styles.messageSuccess]}>{message_s}</Text>
             )}
 
-            <TouchableOpacity style={styles.button} onPress={() => handleTheLogin()}>
-                <Text style={styles.buttonText}>Login</Text>
-            </TouchableOpacity>
+            <View style={styles.containerFlatList}>
+                <TouchableOpacity style={styles.editButtonFull} onPress={() => handleTheLogin()}>
+                    <Icon name="login" size={20} color="#fff" style={{ marginRight: 6 }} />
+                    <Text style={styles.buttonText}>  Login  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.editButtonFull} onPress={() => handleSignUp()}>
+                    <Icon name="app-registration" size={20} color="#fff" style={{ marginRight: 6 }} />
+                    <Text style={styles.buttonText}>  Sign up  </Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button} onPress={() => handleSignUp()}>
-                <Text style={styles.buttonText}>Sign Up</Text>
-            </TouchableOpacity>
+            </View>
+
+
+
+
 
 
         </View>
@@ -139,6 +148,15 @@ const styles = StyleSheet.create({
         padding: 24,
         backgroundColor: '#fff',
     },
+    containerFlatList: {
+        justifyContent: 'flex-start',
+        padding: 2,
+        backgroundColor: '#fff',
+        width: '100%',
+        marginVertical: 1,
+        // Remove: flex: 1,
+    },
+
     message: {
         textAlign: 'center',
         fontSize: 16,
@@ -172,9 +190,32 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         alignItems: 'center',
     },
+    editButton: {
+        backgroundColor: '#2196F3',
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 20, // Rounded corners
+        alignSelf: 'flex-start',
+        flexDirection: 'row',
+        alignItems: 'center',
+
+    },
+    editButtonFull: {
+        backgroundColor: '#2196F3',
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        borderRadius: 20,
+        width: '100%', // Full width
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center', // Center content horizontally
+        marginBottom: 16, // Space between buttons
+    },
     buttonText: {
         color: '#fff',
         fontSize: 18,
         fontWeight: '500',
     },
+
+
 });

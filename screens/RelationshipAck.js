@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect, useFocusEffect } from "react";
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, Switch, TouchableOpacity } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
@@ -8,6 +8,8 @@ import axios from 'axios';
 import Toast from 'react-native-toast-message';
 import { BASE_URL } from "../utils/config";
 import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import * as Common from "../utils/Common";
 
 
 const RelationshipAck = ({ route, navigation }) => {
@@ -15,6 +17,7 @@ const RelationshipAck = ({ route, navigation }) => {
   const { token } = useContext(AuthContext);
   const [userData, setUserData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [message_s, setMessage] = useState('');
 
   const handleCancel = () => {
     navigation.navigate('HomeScreen');
@@ -84,17 +87,37 @@ const RelationshipAck = ({ route, navigation }) => {
       });
       if (response.data) {
         setUserData(response.data);
-        console.log("Response data is ", response.data);
-        Toast.show({
-          type: 'success',
-          text1: 'User found',
-          text2: `Found user: ${response.data.username}`,
-        });
+        //console.log("Response data is ", response.data);
+        // Toast.show({
+        //   type: 'success',
+        //   text1: 'User found',
+        //   text2: `Found user: ${response.data.username}`,
+        // });
+      } else {
+        setMessage("No user found");
+        setUserData([]);
       }
 
     }
     catch (error) {
       console.log("Error in onscreenload", error);
+      if (typeof error.response !== 'undefined') {
+        if (error.response.data?.detail) {
+          setMessage(error.response.data.detail)
+        } else {
+          setMessage(error.response.status)
+        }
+      } else if (error.request) {
+        setMessage(`No response from Server`)
+      } else {
+        setMessage(error.message)
+      }
+
+
+
+
+
+
     } finally {
       setLoading(false);
     }
@@ -132,28 +155,60 @@ const RelationshipAck = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.topSection}>
-        <Text style={styles.text}> hello {currentUsrToken.user.username}</Text>
+        <Text style={styles.text}> Hello {Common.toProperCase(currentUsrToken.user.username)}</Text>
+        {message_s !== '' && (
+          <Text style={[styles.message, styles.messageSuccess]}>{message_s}</Text>
+        )}
       </View>
 
 
       <View style={styles.middleSection}>
-        <FlatList
+
+        {userData && userData.length > 0 && (
+          <>
+
+            <FlatList
+              data={userData}
+              keyExtractor={(item) => item.Userrelation.uniqueidentifyer}
+              renderItem={renderItem}
+            />
+          </>
+        )}
+        {userData && userData.length == 0 && (
+          <Text style={styles.simpleText}>You currently dont have relations with anyone.</Text>
+        )}
+
+
+
+
+
+
+        {/* <FlatList
           data={userData}
           keyExtractor={(item) => item.Userrelation.uniqueidentifyer}
           renderItem={renderItem}
-        />
+        /> */}
       </View>
 
 
 
       <View style={styles.bottomSection}>
+
         <View style={styles.row}>
-          <TouchableOpacity style={styles.button} onPress={() => handleSave()}>
-            <Text style={styles.buttonText}>  update  </Text>
+          {userData && userData.length > 0 && (
+
+            <TouchableOpacity style={styles.editButton} onPress={() => handleSave()}>
+              <Icon name="check" size={20} color="#fff" style={{ marginRight: 6 }} />
+              <Text style={styles.buttonText}>  Set  </Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity style={styles.editButton} onPress={() => handleCancel()}>
+            <Icon name="chevron-left" size={20} color="#fff" style={{ marginRight: 6 }} />
+            <Text style={styles.buttonText}>  Back  </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={() => handleCancel()}>
-            <Text style={styles.buttonText}>  cancel  </Text>
-          </TouchableOpacity>
+
+
 
         </View>
 
@@ -211,6 +266,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '500',
   },
+  editButton: {
+    backgroundColor: '#2196F3',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20, // Rounded corners
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   row: {
     flexDirection: 'row',
     width: '100%',
@@ -245,5 +309,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  simpleText: {
+    fontSize: 14,
+    color: '#555',
+  },
 });
+
 

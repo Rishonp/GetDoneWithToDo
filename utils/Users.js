@@ -4,7 +4,7 @@ class UserRelation {
         this.relationuserid = relationuserid;
         this.uniqueidentifyer = uniqueidentifyer;
         this.relationuserid_ack = relationuserid_ack;
-        
+
     }
     static fromDict(data) {
         return new UserRelation(
@@ -22,7 +22,7 @@ class UserRelation {
             relationuserid_ack: this.relationuserid_ack
         };
     }
- 
+
 }
 
 export { UserRelation }
@@ -66,7 +66,7 @@ class Users {
 export default Users;
 
 class MainTasks {
-    constructor(userid, tasktext, addtocal, priority, startdatetime, enddatetime, donestatus, remarks, addedby_userid, addedby_datetime, uniqueidentifyer, taskack, taskack_datetime) {
+    constructor(userid, tasktext, addtocal, priority, startdatetime, enddatetime, donestatus, donestatus_datetime, remarks, addedby_userid, addedby_datetime, uniqueidentifyer, taskack, taskack_datetime) {
         this.userid = userid;
         this.tasktext = tasktext;
         this.addtocal = addtocal;
@@ -74,6 +74,7 @@ class MainTasks {
         this.startdatetime = startdatetime;
         this.enddatetime = enddatetime;
         this.donestatus = donestatus;
+        this.donestatus_datetime = donestatus_datetime;
         this.remarks = remarks;
         this.addedby_userid = addedby_userid;
         this.addedby_datetime = addedby_datetime;
@@ -87,15 +88,16 @@ class MainTasks {
             data.tasktext || '',
             data.addtocal || 0,
             data.priority || 0,
-            new Date(data.startdatetime) || new Date(),
-            new Date(data.enddatetime) || new Date(),
+            data.startdatetime ? new Date(data.startdatetime) : new Date(),
+            data.enddatetime ? new Date(data.enddatetime) : new Date(),
             data.donestatus || 0,
+            data.donestatus_datetime ? new Date(data.donestatus_datetime) : new Date(),
             data.remarks || '',
             data.addedby_userid || '',
-            new Date(data.addedby_datetime) || new Date(),
+            data.addedby_datetime ? new Date(data.addedby_datetime) : new Date(),
             data.uniqueidentifyer || '',
             data.taskack || 0,
-            new Date(data.taskack_datetime) || new Date()
+            data.taskack_datetime ? new Date(data.taskack_datetime) : new Date()
         );
     }
 
@@ -108,6 +110,7 @@ class MainTasks {
             startdatetime: this.startdatetime.toISOString(),
             enddatetime: this.enddatetime.toISOString(),
             donestatus: this.donestatus,
+            donestatus_datetime: this.donestatus_datetime.toISOString(),
             remarks: this.remarks,
             addedby_userid: this.addedby_userid,
             addedby_datetime: this.addedby_datetime.toISOString(),
@@ -126,6 +129,7 @@ class MainTasks {
             startdatetime: this.startdatetime?.toISOString?.() || String(this.startdatetime),
             enddatetime: this.enddatetime?.toISOString?.() || String(this.enddatetime),
             donestatus: String(this.donestatus),
+            donestatus_datetime: this.donestatus_datetime?.toISOString?.() || String(this.donestatus_datetime),
             remarks: String(this.remarks),
             addedby_userid: String(this.addedby_userid),
             addedby_datetime: this.addedby_datetime?.toISOString?.() || String(this.addedby_datetime),
@@ -144,6 +148,7 @@ class MainTasks {
             new Date(strData.startdatetime),
             new Date(strData.enddatetime),
             parseInt(strData.donestatus) || 0,
+            new Date(strData.donestatus_datetime),
             strData.remarks || '',
             strData.addedby_userid || '',
             new Date(strData.addedby_datetime),
@@ -156,6 +161,35 @@ class MainTasks {
 
 }
 export { MainTasks }
+
+
+class MainTaskWrapperWithAddedByName {
+    constructor(maintask, added_by_name, addedby_userid) {
+        this.maintask = maintask;
+        this.added_by_name = added_by_name;
+        this.addedby_userid = addedby_userid;
+    }
+
+    static fromDict(data) {
+        return new MainTaskWrapperWithAddedByName(
+            MainTasks.fromDict(data.maintask),
+            data.added_by_name,
+            data.addedby_userid || ''
+        );
+
+    }
+
+    toDict() {
+        return {
+            maintask: this.maintask ? this.maintask.toDict() : null,
+            added_by_name: this.added_by_name,
+            addedby_userid: this.addedby_userid
+        };
+    }
+}
+export { MainTaskWrapperWithAddedByName }
+
+
 
 
 

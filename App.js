@@ -35,6 +35,8 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 
+const EmptyLogoutComponent = () => null;
+
 const HomeTabs = () => {
   const { setToken, setCurrentUsrToken } = useContext(AuthContext);
   const handleLogout = async () => {
@@ -61,61 +63,66 @@ const HomeTabs = () => {
           let iconName;
           if (route.name === 'HomeScreen') {
             return focused ? null : (
-              <Ionicons name="home-outline" size={size} color={color} />
+              <Ionicons name="home-outline" size={size} color="#2196F3" />
             );
           } else if (route.name === 'AddTask') {
             return focused ? null : (
-              <Ionicons name="add-circle-outline" size={size} color={color} />
+              <Ionicons name="create-outline" size={size} color="#2196F3" />
             );
           } else if (route.name === 'RelationshipAck') {
             return focused ? null : (
-              <Ionicons name="people-outline" size={size} color={color} />
+              <Ionicons name="people-circle-outline" size={size} color="#2196F3" />
             );
 
           } else if (route.name === 'UserRelationSimple') {
             return focused ? null : (
-              <Ionicons name="person-add-outline" size={size} color={color} />
+              <Ionicons name="people-outline" size={size} color="#2196F3" />
             );
           } else if (route.name === 'ModifyTaskScreen') {
             return focused ? null : (
-              <Ionicons name="create-outline" size={size} color={color} />
+              <Ionicons name="create-outline" size={size} color="#2196F3" />
             );
 
           } else if (route.name === 'Logout') {
             return focused ? null : (
-              <Ionicons name="log-out-outline" size={size} color={color} />
+              <Ionicons name="log-out-outline" size={size} color="grey" />
             );
 
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarLabel: (route.name === 'HomeScreen' || route.name === "ModifyTaskScreen") ? () => null : route.name,
-        tabBarItemStyle: (route.name === 'HomeScreen' || route.name === "ModifyTaskScreen") ? { width: 0, padding: 0 } : undefined,
-        tabBarActiveTintColor: '#e91e63',
+        tabBarLabel: () => null,
+        // tabBarLabel: (route.name === 'HomeScreen' || route.name === "ModifyTaskScreen") ? () => null : route.name,
+        // tabBarItemStyle: (route.name === 'HomeScreen' || route.name === "ModifyTaskScreen") ? { width: 0, padding: 0 } : undefined,
+        tabBarItemStyle: (route.name === 'HomeScreen' || route.name === "ModifyTaskScreen") ? {
+          display: 'none' // Completely hide HomeScreen tab
+        } : {
+          flex: 1, // Evenly distribute visible tabs
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        tabBarActiveTintColor: '#2196F3',
         tabBarInactiveTintColor: 'gray',
       })}>
+
       <Tab.Screen name="HomeScreen" component={HomeScreen} options={{ headerShown: false }} />
       <Tab.Screen name="AddTask" component={AddTask} />
       <Tab.Screen name="RelationshipAck" component={RelationshipAck} />
       <Tab.Screen name="UserRelationSimple" component={UserRelationSimple} />
-      <Tab.Screen name="ModifyTaskScreen" component={ModifyTaskScreen} />
-
-
+      {/* <Tab.Screen name="ModifyTaskScreen" component={ModifyTaskScreen} /> */}
 
       <Tab.Screen
         name="Logout"
-        component={() => null} // No screen shown
+        component={EmptyLogoutComponent} // Use the external component
         listeners={{
           tabPress: (e) => {
-            e.preventDefault(); // Prevent default tab behavior
+            e.preventDefault();
             handleLogout();
           },
         }}
-        options={{ tabBarLabel: 'Logout' }}
+      // options={{ tabBarLabel: 'Logout' }}
       />
-
-
 
     </Tab.Navigator>
   );
@@ -136,6 +143,7 @@ const AppNav = () => {
       {token !== null && token.length !== 0 ? (
         <>
           <Stack.Screen name="HomeTabs" component={HomeTabs} options={{ headerShown: false }} />
+          <Stack.Screen name="ModifyTaskScreen" component={ModifyTaskScreen} options={{ headerShown: true }} />
 
         </>
       ) : (

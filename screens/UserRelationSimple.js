@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { View, TextInput, Button, Text, StyleSheet, Alert, TouchableOpacity, Switch } from 'react-native';
 import axios from 'axios';
 import Users from "../utils/Users";
@@ -8,13 +8,14 @@ import * as Common from "../utils/Common"
 import { AuthContext } from '../context/AuthContext';
 import { MainTasks } from '../utils/Users';
 import Toast from 'react-native-toast-message';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 //import DateTimePicker from '@react-native-community/datetimepicker';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { Keyboard } from 'react-native';
 import { Platform } from 'react-native';
 import { BASE_URL } from "../utils/config";
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 
 const UserRelationSimple = ({ route, navigation }) => {
@@ -69,12 +70,14 @@ const UserRelationSimple = ({ route, navigation }) => {
 
                 Toast.show({
                     type: 'success',
-                    text1: 'User found',
-                    text2: `Found user: ${response.data.username}`,
+                    text1: 'User Relation Set',
+                    text2: `${response.data.username}`,
                 });
+                setRelationUserName('');
+                setMessage(``);
             }
         } catch (error) {
-            console.error("Error SETTING  user: ", error);
+            console.log("Error SETTING  user: ", error);
             if (typeof error.response !== 'undefined') {
                 if (error.response.data?.detail) {
                     setMessage(error.response.data.detail)
@@ -95,8 +98,22 @@ const UserRelationSimple = ({ route, navigation }) => {
 
     const onFormLoadFunction = () => {
 
+
         //console.log("this is the form load function");
     }
+
+
+
+    // Reset message when screen gets focus
+    useFocusEffect(
+        React.useCallback(() => {
+            setMessage('');
+            setRelationUserID('');
+            setRelationUserName('');
+            setuserrelation_uniqueIdentifier('');
+        }, [])
+    );
+
 
     useEffect(() => {
         onFormLoadFunction()
@@ -109,7 +126,7 @@ const UserRelationSimple = ({ route, navigation }) => {
 
 
         <View style={styles.container}>
-            <Text style={styles.largeText}>Enter you Family or Fiends user name</Text>
+            <Text style={styles.largeText}>Enter your Family's or Friend's user name</Text>
             <TextInput
                 style={styles.input}
                 placeholder="User Name"
@@ -117,13 +134,25 @@ const UserRelationSimple = ({ route, navigation }) => {
                 onChangeText={setRelationUserName}
                 autoCapitalize="none"
             />
-            <TouchableOpacity style={styles.button} onPress={() => setOnPress()}>
-                <Text style={styles.buttonText}>  Set  </Text>
-            </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button} onPress={() => cancelPress()}>
-                <Text style={styles.buttonText}>  Go Back  </Text>
-            </TouchableOpacity>
+            <View style={styles.row}>
+
+                <TouchableOpacity style={styles.editButton} onPress={() => setOnPress()}>
+                    <Icon name="check" size={20} color="#fff" style={{ marginRight: 6 }} />
+                    <Text style={styles.buttonText}>  Set  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.editButton} onPress={() => cancelPress()}>
+                    <Icon name="chevron-left" size={20} color="#fff" style={{ marginRight: 6 }} />
+                    <Text style={styles.buttonText}>  Back  </Text>
+                </TouchableOpacity>
+
+
+
+            </View>
+
+
+
+
 
             {message_s !== '' && (
                 <Text style={[styles.message, styles.messageSuccess]}>{message_s}</Text>
@@ -205,6 +234,16 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         borderRadius: 8,
         alignItems: 'center',
+    },
+    editButton: {
+        backgroundColor: '#2196F3',
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 20, // Rounded corners
+        alignSelf: 'flex-start',
+        flexDirection: 'row',
+        alignItems: 'center',
+
     },
     buttonText: {
         color: '#fff',

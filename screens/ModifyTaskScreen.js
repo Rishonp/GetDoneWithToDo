@@ -15,6 +15,7 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { Keyboard } from 'react-native';
 import { Platform } from 'react-native';
 import { BASE_URL } from '../utils/config';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const ModifyTaskScreen = ({ route, navigation }) => {
     const { taskStringifyed } = route.params;
@@ -26,7 +27,7 @@ const ModifyTaskScreen = ({ route, navigation }) => {
     const { token } = useContext(AuthContext);
     const [message_s, setMessage] = useState('');
     const [loading, setLoading] = useState(true);
-    const [theTask, setTheTask] = useState('');
+    //const [theTask, setTheTask] = useState('');
     const [taskack_s, settaskack_s] = useState(false);
     const [donestatus_s, setdonestatus_s] = useState(false);
 
@@ -34,6 +35,88 @@ const ModifyTaskScreen = ({ route, navigation }) => {
     const [showStartPicker, setShowStartPicker] = useState(false);
     const [showEndPicker, setShowEndPicker] = useState(false);
     const [showAddedByPicker, setShowAddedByPicker] = useState(false);
+
+    const [showStartPicker_time, setShowStartPicker_time] = useState(false);
+    const [showEndPicker_time, setShowEndPicker_time] = useState(false);
+
+
+    const showStartTimePicker = () => {
+        //console.log("showStartTimePicker called");
+        //console.log(task_MainTask.startdatetime);
+        //console.log(Common.serverDatetoUTCDate(task_MainTask.startdatetime));
+        //console.log(Common.serverDatetoUTCDate(task_MainTask.startdatetime).toLocaleString());
+        setShowStartPicker_time(true);
+    };
+
+    const showEndTimePicker = () => {
+        setTask_MainTask({ ...task_MainTask, enddatetime: task_MainTask.enddatetime || new Date() })
+        setShowEndPicker_time(true);
+    };
+
+
+    const hideStartTimePicker = () => {
+        setShowStartPicker_time(false);
+    };
+
+    const hideEndTimePicker = () => {
+        setShowEndPicker_time(false);
+    };
+
+
+    const handleConfirmStartPicker_time = (selectedTime) => {
+        //console.log("handleConfirmStartPicker_time called with selectedTime", selectedTime);
+        //console.log("handleConfirmStartPicker_time called with startdatetime", task_MainTask.startdatetime);
+        hideStartTimePicker();
+        let msg = Common.validateStartDateAndEndDate(task_MainTask.startdatetime, Common.SlidedDateTime(task_MainTask.startdatetime, selectedTime));
+        if (msg.length > 0) {
+            Alert.alert("Error", msg);
+            return;
+        }
+        let a = Common.SlidedDateTime(task_MainTask.startdatetime, selectedTime);
+        setTask_MainTask({ ...task_MainTask, startdatetime: a });
+    };
+
+
+    const handleConfirmEndPicker_time = (selectedTime) => {
+        hideEndTimePicker();
+        let msg = Common.validateStartDateAndEndDate(task_MainTask.startdatetime, Common.SlidedDateTime(task_MainTask.enddatetime, selectedTime));
+        if (msg.length > 0) {
+            Alert.alert("Error", msg);
+            return;
+        }
+        let a = Common.SlidedDateTime(task_MainTask.enddatetime, selectedTime);
+        setTask_MainTask({ ...task_MainTask, enddatetime: a });
+    };
+
+
+    const handleConfirmEndPicker = (date) => {
+        hideEndDatePicker();
+        let actualPickedDate = Common.takeDateFromOneAndTimeFromOther(date, task_MainTask.enddatetime);
+        let msg = Common.validateStartDateAndEndDate(task_MainTask.startdatetime, actualPickedDate);
+        if (msg.length > 0) {
+            Alert.alert("Error", msg);
+            return;
+        }
+        setTask_MainTask({ ...task_MainTask, enddatetime: actualPickedDate });
+    };
+
+
+    const handleConfirmStartPicker = (date) => {
+        hideStartDatePicker();
+        console.log("handleConfirmStartPicker called with date", date);
+        console.log("handleConfirmStartPicker called with startdatetime", task_MainTask.startdatetime);
+        let actualPickedDate = Common.takeDateFromOneAndTimeFromOther_V2(date, task_MainTask.startdatetime);
+        console.log("actualPickedDate", actualPickedDate);
+        let msg = Common.validateStartDateAndEndDate(actualPickedDate, task_MainTask.enddatetime);
+        if (msg.length > 0) {
+            Alert.alert("Error", msg);
+            return;
+        }
+
+        console.log("setting start time with ", actualPickedDate);
+        setTask_MainTask({ ...task_MainTask, startdatetime: actualPickedDate });
+    };
+
 
     const onChangeDateTimePicker = (event, selectedDate) => {
         console.log("onChangeDateTimePicker called with event", event.type, "and selectedDate", selectedDate);
@@ -69,13 +152,6 @@ const ModifyTaskScreen = ({ route, navigation }) => {
     };
 
 
-    const handleConfirmEndPicker = (date) => {
-        //not sure why date picker returns a date with one day more than selected. Hence the -1
-        let tempdate = new Date(date);
-        tempdate.setDate(tempdate.getDate() - 1);
-        setTask_MainTask({ ...task_MainTask, enddatetime: tempdate });
-        hideEndDatePicker();
-    };
 
     const showEndDatePicker = () => {
         setTask_MainTask({ ...task_MainTask, enddatetime: task_MainTask.enddatetime || new Date() })
@@ -86,15 +162,6 @@ const ModifyTaskScreen = ({ route, navigation }) => {
     };
 
 
-    const handleConfirmStartPicker = (date) => {
-        //not sure why date picker returns a date with one day more than selected. Hence the -1
-        //console.log("handleConfirmStartPicker called with date", date);
-        let tempdate = new Date(date);
-        tempdate.setDate(tempdate.getDate() - 1);
-        //console.log("handleConfirmStartPicker called with date", tempdate);
-        setTask_MainTask({ ...task_MainTask, startdatetime: tempdate });
-        hideStartDatePicker();
-    };
 
     const showStartDatePicker = () => {
         setTask_MainTask({ ...task_MainTask, startdatetime: task_MainTask.startdatetime || new Date() })
@@ -105,7 +172,7 @@ const ModifyTaskScreen = ({ route, navigation }) => {
     };
 
     const handleSave = async () => {
-        const payload = Common.getpayLoadFromMainTask(task_MainTask)
+        const payload = Common.getpayLoadFromMainTask111(task_MainTask)
         try {
             const response = await axios.post(`${BASE_URL}/UpdateTask/`, payload, {
                 headers: {
@@ -118,13 +185,15 @@ const ModifyTaskScreen = ({ route, navigation }) => {
         }
         // Save logic here (API call or state update)
         // After saving, go back
-        //navigation.goBack();
-        console.log("Saving task:", task_MainTask);
 
+        //console.log("Saving task:", task_MainTask);
+        //navigation.navigate('HomeScreen');
+        navigation.goBack()
     };
 
     const handleCancel = () => {
-        navigation.navigate('HomeScreen')
+        //navigation.navigate('HomeScreen')
+        navigation.goBack()
     };
 
 
@@ -164,18 +233,23 @@ const ModifyTaskScreen = ({ route, navigation }) => {
     };
 
     const onFormLoadFunction = () => {
-        //console.log("this is incomming task", taskStringifyed)
-        //local_task = MainTasks.fromStringDict(taskStringifyed)
-        //console.log("local_task", local_task.tasktext)
-        //setTask_MainTask(local_task)
-        console.log("this sdrfgsdfgsdfgsdfgsdfgi tas ktext ", task_MainTask.tasktext)
-        //console.log("This is it !!!", local_task)
+        if (route.params?.taskStringifyed) { // this if is necessary when user visits  modif then home then again modi screen .. to refres hte task selected 
+            const { taskStringifyed } = route.params;
+            let local_task = new MainTasks()
+            local_task = MainTasks.fromStringDict(taskStringifyed)
+            //convert all dates to UTC
+            local_task.startdatetime = Common.serverDatetoUTCDate(local_task.startdatetime);
+            local_task.enddatetime = Common.serverDatetoUTCDate(local_task.enddatetime);
+            local_task.addedby_datetime = Common.serverDatetoUTCDate(local_task.addedby_datetime);
+            local_task.donestatus_datetime = Common.serverDatetoUTCDate(local_task.donestatus_datetime);
+            local_task.taskack_datetime = Common.serverDatetoUTCDate(local_task.taskack_datetime);
+            setTask_MainTask(local_task);
+        }
     }
 
     useEffect(() => {
         onFormLoadFunction()
-        //ToDO call function to load user name of added by user 
-    }, []);
+    }, [route.params?.taskStringifyed]); /// Re-run when taskStringifyed changes, useful when i keep going back and fotth between home scree nand modify task screen
 
 
 
@@ -183,7 +257,18 @@ const ModifyTaskScreen = ({ route, navigation }) => {
         <View style={styles.container}>
             <View style={styles.row}>
                 <Text style={styles.largeText}>Task Acknowledged</Text>
-                <Switch style={styles.switch} value={taskack_s} onValueChange={(value) => handleTaskAck(value)} />
+                <Switch
+                    style={styles.switch}
+                    value={taskack_s}
+                    onValueChange={(value) => handleTaskAck(value)}
+                    trackColor={{
+                        false: '#FDECEA', // Bright red when off
+                        true: '#E8F5E8'   // Material green when on
+                    }}
+                    thumbColor={taskack_s ? 'grey' : 'grey'} // White thumb always
+                    ios_backgroundColor="#FDECEA" // iOS background when off
+                />
+
             </View>
             <TextInput
                 style={styles.input}
@@ -191,7 +276,9 @@ const ModifyTaskScreen = ({ route, navigation }) => {
                 onChangeText={(text) => setTask_MainTask({ ...task_MainTask, tasktext: text })}
                 placeholder="Task Text"
             />
-            <View style={styles.pickerWrapper}>
+
+
+            {/* <View style={styles.pickerWrapper}>
                 <Picker
                     selectedValue={task_MainTask.priority}
                     style={styles.picker}
@@ -200,38 +287,103 @@ const ModifyTaskScreen = ({ route, navigation }) => {
                     <Picker.Item label="P1" value={1} />
                     <Picker.Item label="P2" value={2} />
                 </Picker>
+            </View> */}
+
+
+
+
+            <View style={styles.row}>
+                <Text style={styles.largeText}>Priority          </Text>
+                <View style={styles.verticallyCentered}>
+                    <View style={[
+                        styles.pickerWrapper,
+                        { backgroundColor: task_MainTask.priority === 0 ? '#FDECEA' : '#E8F5E8' }
+                    ]}>
+                        <Picker
+                            selectedValue={task_MainTask.priority}
+                            style={styles.picker}
+                            onValueChange={(itemValue) => setTask_MainTask({ ...task_MainTask, priority: itemValue })}>
+                            <Picker.Item label="P0" value={0} />
+                            <Picker.Item label="P1" value={1} />
+                            <Picker.Item label="P2" value={2} />
+                        </Picker>
+                    </View>
+
+                </View>
+
             </View>
+
+
+
+
+
             <View style={styles.row}>
                 <Text style={styles.largeText}>Done?</Text>
-                <Switch style={styles.switch} value={donestatus_s} onValueChange={(value) => handleDoneStatus(value)} />
+
+
+                <Switch
+                    style={styles.switch}
+                    value={donestatus_s}
+                    onValueChange={(value) => handleDoneStatus(value)}
+                    trackColor={{
+                        false: '#FDECEA', // Bright red when off
+                        true: '#E8F5E8'   // Material green when on
+                    }}
+                    thumbColor={donestatus_s ? 'grey' : 'grey'} // White thumb always
+                    ios_backgroundColor="#FDECEA" // iOS background when off
+                />
+
             </View>
             <View style={styles.row}>
                 <Text style={styles.largeText}>Start Date</Text>
-                <TouchableOpacity style={styles.button_datetime} onPress={() => showStartDatePicker()}>
-                    <Text style={styles.buttonText}>{Common.convertDateToStringDDMMYYYYHHMMSS(task_MainTask.startdatetime)}</Text>
+                <TouchableOpacity style={styles.buttonStart} onPress={() => showStartDatePicker()} onLongPress={() => showStartTimePicker()}>
+                    <Icon name="today" size={20} color="black" style={{ marginRight: 6 }} />
+                    <Text style={styles.buttonTextBlack}>{task_MainTask.startdatetime?.toLocaleString()}</Text>
                 </TouchableOpacity>
 
                 <DateTimePickerModal
                     isVisible={showStartPicker}
                     mode="date"
+                    date={task_MainTask.startdatetime}
                     onConfirm={handleConfirmStartPicker}
                     onCancel={hideStartDatePicker}
                 />
+
+                <DateTimePickerModal
+                    isVisible={showStartPicker_time}
+                    mode="time"
+                    date={task_MainTask.startdatetime}
+                    onConfirm={handleConfirmStartPicker_time}
+                    onCancel={hideStartTimePicker}
+                />
+
+
             </View>
 
 
             <View style={styles.row}>
                 <Text style={styles.largeText}>End Date</Text>
-                <TouchableOpacity style={styles.button_datetime} onPress={() => showEndDatePicker()}>
-                    <Text style={styles.buttonText}>{Common.convertDateToStringDDMMYYYYHHMMSS(task_MainTask.enddatetime)}</Text>
+                <TouchableOpacity style={styles.buttonEnd} onPress={() => showEndDatePicker()} onLongPress={() => showEndTimePicker()}>
+                    <Icon name="event" size={20} color="black" style={{ marginRight: 6 }} />
+                    <Text style={styles.buttonTextBlack}>{task_MainTask.enddatetime?.toLocaleString()}</Text>
                 </TouchableOpacity>
 
                 <DateTimePickerModal
                     isVisible={showEndPicker}
                     mode="date"
+                    date={task_MainTask.enddatetime}
                     onConfirm={handleConfirmEndPicker}
                     onCancel={hideEndDatePicker}
                 />
+
+                <DateTimePickerModal
+                    isVisible={showEndPicker_time}
+                    mode="time"
+                    date={task_MainTask.enddatetime}
+                    onConfirm={handleConfirmEndPicker_time}
+                    onCancel={hideEndTimePicker}
+                />
+
             </View>
 
             <TextInput
@@ -242,8 +394,18 @@ const ModifyTaskScreen = ({ route, navigation }) => {
             />
 
             <View style={styles.row}>
-                <Button title="    Save    " onPress={handleSave} />
-                <Button title="   Cancel   " onPress={handleCancel} />
+
+                <TouchableOpacity style={styles.editButton} onPress={() => handleSave()}>
+                    <Icon name="edit" size={20} color="#fff" style={{ marginRight: 6 }} />
+                    <Text style={styles.buttonText}>  Save  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.editButton} onPress={() => handleCancel()}>
+                    <Icon name="cancel" size={20} color="#fff" style={{ marginRight: 6 }} />
+                    <Text style={styles.buttonText}>  Cancel  </Text>
+                </TouchableOpacity>
+
+
+
             </View>
 
         </View>
@@ -285,7 +447,7 @@ const styles = StyleSheet.create({
     },
     input: {
         height: 58,
-        borderColor: '#ccc',
+        borderColor: 'black',
         borderWidth: 1,
         marginBottom: 20,
         borderRadius: 8,
@@ -297,18 +459,31 @@ const styles = StyleSheet.create({
         height: 58,
         borderColor: 'black',
         borderWidth: 1,
-        marginBottom: 20,
+        marginBottom: 5,
         borderRadius: 8,
-        paddingHorizontal: 12,
-        fontSize: 16,
+        paddingHorizontal: 5,
+        fontSize: 14,
+        fontWeight: '600',
         color: '#000',
+    },
+    verticallyCentered: {
+        justifyContent: 'center',
+        alignItems: 'center', //
+
     },
     pickerWrapper: {
         borderWidth: 1,
         borderColor: '#888',
-        borderRadius: 5,
+        borderRadius: 20,
         overflow: 'hidden', // Prevents Picker from spilling out
-        height: 58, // Ensures consistent height
+        height: 44, // Ensures consistent height
+        // flex: .25, // Take available space in the row
+        backgroundColor: '#f0f0f0',
+        //justifyContent: 'center', // Centers vertically
+        //alignItems: 'center', //
+        width: '150',
+        fontSize: 14,
+        fontWeight: '600',
     },
     button_datetime: {
         backgroundColor: 'lightgray',
@@ -316,7 +491,36 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         alignItems: 'center',
     },
+    buttonStart: {
+        backgroundColor: '#E8F5E8',
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 20, // Rounded corners
+        alignSelf: 'flex-start',
+        flexDirection: 'row',
+        alignItems: 'center',
 
+    },
+
+    buttonEnd: {
+        backgroundColor: '#FDECEA',
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 20, // Rounded corners
+        alignSelf: 'flex-start',
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    editButton: {
+        backgroundColor: '#2196F3',
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        borderRadius: 20, // Rounded corners
+        alignSelf: 'flex-start',
+        flexDirection: 'row',
+        alignItems: 'center',
+
+    },
     button: {
         backgroundColor: '#1e90ff',
         paddingVertical: 14,
@@ -325,8 +529,13 @@ const styles = StyleSheet.create({
     },
     buttonText: {
         color: '#fff',
-        fontSize: 18,
-        fontWeight: '500',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    buttonTextBlack: {
+        color: 'black', // Black text
+        fontSize: 14,
+        fontWeight: '600',
     },
     row: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, justifyContent: 'space-between' },
     switch: { transform: [{ scaleX: 1.5 }, { scaleY: 1.5 }], },
