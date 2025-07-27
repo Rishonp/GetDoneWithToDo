@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from "react";
-import { View, TextInput, Button, Text, StyleSheet, Alert, TouchableOpacity, Switch } from 'react-native';
+import { View, TextInput, Button, Text, StyleSheet, Alert, TouchableOpacity, Switch, StatusBar, Platform } from 'react-native';
 import axios from 'axios';
 import Users from "../utils/Users";
 import Token, { UserNToken } from "../utils/Token";
@@ -13,9 +13,9 @@ import { Picker } from '@react-native-picker/picker';
 //import DateTimePicker from '@react-native-community/datetimepicker';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { Keyboard } from 'react-native';
-import { Platform } from 'react-native';
 import { BASE_URL } from "../utils/config";
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 
 const UserRelationSimple = ({ route, navigation }) => {
@@ -124,41 +124,57 @@ const UserRelationSimple = ({ route, navigation }) => {
 
     return (
 
+        <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 0 }}>
 
-        <View style={styles.container}>
-            <Text style={styles.largeText}>Enter your Family's or Friend's user name</Text>
-            <TextInput
-                style={styles.input}
-                placeholder="User Name"
-                value={relationUserName}
-                onChangeText={setRelationUserName}
-                autoCapitalize="none"
-            />
+            <LinearGradient
+                colors={[Common.getColor("backGradientEnd"), Common.getColor("backGradientStart")]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.container}
+            >
 
-            <View style={styles.row}>
+                <View style={styles.container}>
+                    <Text style={styles.largeText}>Enter your Family's or Friend's user name</Text>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="User Name"
+                        value={relationUserName}
+                        onChangeText={setRelationUserName}
+                        autoCapitalize="none"
+                    />
 
-                <TouchableOpacity style={styles.editButton} onPress={() => setOnPress()}>
-                    <Icon name="check" size={20} color="#fff" style={{ marginRight: 6 }} />
-                    <Text style={styles.buttonText}>  Set  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.editButton} onPress={() => cancelPress()}>
-                    <Icon name="chevron-left" size={20} color="#fff" style={{ marginRight: 6 }} />
-                    <Text style={styles.buttonText}>  Back  </Text>
-                </TouchableOpacity>
+                    <View style={styles.row}>
+
+                        <TouchableOpacity style={styles.editButton} onPress={() => setOnPress()}>
+                            <Icon name="check" size={20} color="#fff" style={{ marginRight: 6 }} />
+                            <Text style={styles.buttonText}>  Set  </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.editButton} onPress={() => cancelPress()}>
+                            <Icon name="chevron-left" size={20} color="#fff" style={{ marginRight: 6 }} />
+                            <Text style={styles.buttonText}>  Back  </Text>
+                        </TouchableOpacity>
 
 
 
-            </View>
+                    </View>
 
 
 
 
 
-            {message_s !== '' && (
-                <Text style={[styles.message, styles.messageSuccess]}>{message_s}</Text>
-            )}
+                    {message_s !== '' && (
+                        <Text style={[styles.message, styles.messageSuccess]}>{message_s}</Text>
+                    )}
+
+                </View>
+
+
+            </LinearGradient>
+
 
         </View>
+
+
     );
 
 
@@ -171,7 +187,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'top',
         padding: 24,
-        backgroundColor: '#fff',
+        //backgroundColor: '#fff',
     },
     largeText: {
         textAlign: 'center',
@@ -236,7 +252,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     editButton: {
-        backgroundColor: '#2196F3',
+        backgroundColor: Common.getColor("darkgreen"),
         paddingVertical: 8,
         paddingHorizontal: 14,
         borderRadius: 20, // Rounded corners

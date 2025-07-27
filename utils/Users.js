@@ -28,8 +28,31 @@ class UserRelation {
 export { UserRelation }
 
 
+class usernotitoken {
+    constructor(userid, notitoken, username) {
+        this.userid = userid;
+        this.notitoken = notitoken;
+        this.username = username;
+    }
 
+    static fromDict(data) {
+        return new usernotitoken(
+            data.userid || '',
+            data.notitoken || '',
+            data.username || ''
+        );
+    }
 
+    toDict() {
+        return {
+            userid: this.userid,
+            notitoken: this.notitoken,
+            username: this.username
+        };
+    }
+}
+
+export { usernotitoken }
 
 
 class Users {

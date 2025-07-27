@@ -1,6 +1,6 @@
 import { useContext, useState, useEffect, useFocusEffect } from "react";
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, Switch, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Switch, TouchableOpacity, StatusBar, Platform } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import { UserNToken, Token } from "../utils/Token";
 import { User, UserRelation } from "../utils/Users";
@@ -10,6 +10,7 @@ import { BASE_URL } from "../utils/config";
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as Common from "../utils/Common";
+import { LinearGradient } from 'expo-linear-gradient';
 
 
 const RelationshipAck = ({ route, navigation }) => {
@@ -126,7 +127,19 @@ const RelationshipAck = ({ route, navigation }) => {
   const renderItem = ({ item }) => (
     <View style={styles.row}>
       <Text style={styles.nameText}>{item.name}</Text>
-      <Switch style={styles.switch} value={switchDisplayFunction(item)} onValueChange={(value) => handleTaskAck(value, item)} />
+      <Switch
+        style={styles.switch}
+        value={switchDisplayFunction(item)}
+        onValueChange={(value) => handleTaskAck(value, item)}
+        trackColor={{
+          false: '#FDECEA', // Bright red when off
+          true: Common.getColor("green")   // Material green when on
+        }}
+        thumbColor={switchDisplayFunction(item) ? Common.getColor("darkgreen") : 'grey'} // White thumb always
+        ios_backgroundColor="#FDECEA" // iOS background when off
+
+
+      />
     </View>
   );
 
@@ -153,69 +166,91 @@ const RelationshipAck = ({ route, navigation }) => {
   }, []);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.topSection}>
-        <Text style={styles.text}> Hello {Common.toProperCase(currentUsrToken.user.username)}</Text>
-        {message_s !== '' && (
-          <Text style={[styles.message, styles.messageSuccess]}>{message_s}</Text>
-        )}
-      </View>
+
+    <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 0 }}>
+      <LinearGradient
+        colors={[Common.getColor("backGradientEnd"), Common.getColor("backGradientStart")]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.container}
+      >
+
+        <View style={styles.container}>
+          <View style={styles.topSection}>
+            <Text style={styles.text}> Hello {Common.toProperCase(currentUsrToken.user.username)}</Text>
+            {message_s !== '' && (
+              <Text style={[styles.message, styles.messageSuccess]}>{message_s}</Text>
+            )}
+          </View>
 
 
-      <View style={styles.middleSection}>
+          <View style={styles.middleSection}>
 
-        {userData && userData.length > 0 && (
-          <>
+            {userData && userData.length > 0 && (
+              <>
 
-            <FlatList
-              data={userData}
-              keyExtractor={(item) => item.Userrelation.uniqueidentifyer}
-              renderItem={renderItem}
-            />
-          </>
-        )}
-        {userData && userData.length == 0 && (
-          <Text style={styles.simpleText}>You currently dont have relations with anyone.</Text>
-        )}
-
-
+                <FlatList
+                  data={userData}
+                  keyExtractor={(item) => item.Userrelation.uniqueidentifyer}
+                  renderItem={renderItem}
+                />
+              </>
+            )}
+            {userData && userData.length == 0 && (
+              <Text style={styles.simpleText}>You currently dont have relations with anyone.</Text>
+            )}
 
 
 
 
-        {/* <FlatList
+
+
+            {/* <FlatList
           data={userData}
           keyExtractor={(item) => item.Userrelation.uniqueidentifyer}
           renderItem={renderItem}
         /> */}
-      </View>
+          </View>
 
 
 
-      <View style={styles.bottomSection}>
+          <View style={styles.bottomSection}>
 
-        <View style={styles.row}>
-          {userData && userData.length > 0 && (
+            <View style={styles.row}>
+              {userData && userData.length > 0 && (
 
-            <TouchableOpacity style={styles.editButton} onPress={() => handleSave()}>
-              <Icon name="check" size={20} color="#fff" style={{ marginRight: 6 }} />
-              <Text style={styles.buttonText}>  Set  </Text>
-            </TouchableOpacity>
-          )}
+                <TouchableOpacity style={styles.editButton} onPress={() => handleSave()}>
+                  <Icon name="check" size={20} color="#fff" style={{ marginRight: 6 }} />
+                  <Text style={styles.buttonText}>  Set  </Text>
+                </TouchableOpacity>
+              )}
 
-          <TouchableOpacity style={styles.editButton} onPress={() => handleCancel()}>
-            <Icon name="chevron-left" size={20} color="#fff" style={{ marginRight: 6 }} />
-            <Text style={styles.buttonText}>  Back  </Text>
-          </TouchableOpacity>
+              <TouchableOpacity style={styles.editButton} onPress={() => handleCancel()}>
+                <Icon name="chevron-left" size={20} color="#fff" style={{ marginRight: 6 }} />
+                <Text style={styles.buttonText}>  Back  </Text>
+              </TouchableOpacity>
 
 
+
+            </View>
+
+
+          </View>
 
         </View>
 
 
-      </View>
+
+      </LinearGradient>
+
+
+
 
     </View>
+
+
+
+
   );
 
 }
@@ -227,7 +262,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    //backgroundColor: '#fff',
   },
   containerWithBorder: {
     flex: 1,
@@ -267,7 +302,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   editButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: Common.getColor("darkgreen"),
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 20, // Rounded corners
@@ -288,24 +323,24 @@ const styles = StyleSheet.create({
   },
   topSection: {
     flex: 1, // 10%
-    backgroundColor: 'white',
+    //backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
   },
   middleSection: {
     flex: 8, // 80%
-    backgroundColor: '#d1ecf1',
+    //backgroundColor: '#d1ecf1',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,          // Thickness of the border
-    borderColor: 'black',    // Border color
-    borderRadius: 5,         // Optional: rounded corners
+    //borderWidth: 1,          // Thickness of the border
+    //borderColor: 'black',    // Border color
+    //borderRadius: 5,         // Optional: rounded corners
     padding: 2,             // Optional: space inside the border
     margin: 2,              // Optional: space outside the border
   },
   bottomSection: {
     flex: 1, // 10%
-    backgroundColor: 'white',
+    //backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
   },

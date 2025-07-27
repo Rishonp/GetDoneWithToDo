@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from "react";
-import { View, TextInput, Button, Text, StyleSheet, Alert, TouchableOpacity, Switch, FlatList } from 'react-native';
+import { View, TextInput, Button, Text, StyleSheet, Alert, TouchableOpacity, Switch, FlatList, StatusBar, Platform } from 'react-native';
 import axios from 'axios';
 import Users from "../utils/Users";
 import Token, { UserNToken } from "../utils/Token";
@@ -13,9 +13,9 @@ import { Picker } from '@react-native-picker/picker';
 //import DateTimePicker from '@react-native-community/datetimepicker';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { Keyboard } from 'react-native';
-import { Platform } from 'react-native';
 import { BASE_URL } from '../utils/config';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const AddTask = ({ route, navigation }) => {
     const { currentUsrToken } = useContext(AuthContext);
@@ -298,149 +298,166 @@ const AddTask = ({ route, navigation }) => {
 
     return (
 
-        <View style={styles.container}>
-            <View style={styles.middleSection}>
+        <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 0 }}>
+
+            <LinearGradient
+                colors={[Common.getColor("backGradientEnd"), Common.getColor("backGradientStart")]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.container}
+            >
+
                 <View style={styles.container}>
-                    <TextInput
-                        style={styles.input}
-                        value={theTask.tasktext}
-                        onChangeText={(text) => setTheTask({ ...theTask, tasktext: text })}
-                        placeholder="the Task..."
-                    />
+                    <View style={styles.middleSection}>
+                        <View style={styles.container}>
+                            <TextInput
+                                style={styles.input}
+                                value={theTask.tasktext}
+                                onChangeText={(text) => setTheTask({ ...theTask, tasktext: text })}
+                                placeholder="add a new Task..."
+                            />
 
-                    <View style={styles.row}>
-                        <Text style={styles.largeText}>Done?</Text>
+                            <View style={styles.row}>
+                                <Text style={styles.largeText}>Done?</Text>
 
-                        {/* <Switch style={styles.switch} value={theTask.donestatus == 1 ? true : false} onValueChange={(value) => setTheTask({ ...theTask, donestatus: value == true ? 1 : 0 })} /> */}
+                                {/* <Switch style={styles.switch} value={theTask.donestatus == 1 ? true : false} onValueChange={(value) => setTheTask({ ...theTask, donestatus: value == true ? 1 : 0 })} /> */}
 
-                        <Switch
-                            style={styles.switch}
-                            value={theTask.donestatus == 1 ? true : false}
-                            onValueChange={(value) => setTheTask({ ...theTask, donestatus: value == true ? 1 : 0 })}
-                            trackColor={{
-                                false: '#FDECEA', // Bright red when off
-                                true: '#E8F5E8'   // Material green when on
-                            }}
-                            thumbColor={theTask.donestatus == 1 ? 'grey' : 'grey'} // White thumb always
-                            ios_backgroundColor="#FDECEA" // iOS background when off
-                        />
+                                <Switch
+                                    style={styles.switch}
+                                    value={theTask.donestatus == 1 ? true : false}
+                                    onValueChange={(value) => setTheTask({ ...theTask, donestatus: value == true ? 1 : 0 })}
+                                    trackColor={{
+                                        false: Common.getColor("oldred"), // Bright red when off
+                                        true: Common.getColor("green")   // Material green when on
+                                    }}
+                                    thumbColor={theTask.donestatus == 1 ? Common.getColor("darkgreen") : 'grey'} // White thumb always
+                                    ios_backgroundColor={Common.getColor("oldred")} // iOS background when off
+                                />
 
 
 
-                    </View>
+                            </View>
 
-                    <View style={styles.row}>
-                        <Text style={styles.largeText}>Priority          </Text>
-                        <View style={styles.verticallyCentered}>
-                            <View style={[
-                                styles.pickerWrapper,
-                                { backgroundColor: theTask.priority === 0 ? '#FDECEA' : '#E8F5E8' }
-                            ]}>
-                                <Picker
-                                    selectedValue={theTask.priority}
-                                    style={styles.picker}
-                                    onValueChange={(itemValue) => setTheTask({ ...theTask, priority: itemValue })}>
-                                    <Picker.Item label="P0" value={0} />
-                                    <Picker.Item label="P1" value={1} />
-                                    <Picker.Item label="P2" value={2} />
-                                </Picker>
+                            <View style={styles.row}>
+                                <Text style={styles.largeText}>Priority          </Text>
+                                <View style={styles.verticallyCentered}>
+                                    <View style={[
+                                        styles.pickerWrapper,
+                                        { backgroundColor: theTask.priority === 0 ? '#FDECEA' : '#E8F5E8' }
+                                    ]}>
+                                        <Picker
+                                            selectedValue={theTask.priority}
+                                            style={styles.picker}
+                                            onValueChange={(itemValue) => setTheTask({ ...theTask, priority: itemValue })}>
+                                            <Picker.Item label="P0" value={0} />
+                                            <Picker.Item label="P1" value={1} />
+                                            <Picker.Item label="P2" value={2} />
+                                        </Picker>
+                                    </View>
+
+                                </View>
+
+                            </View>
+                            <View style={styles.row}>
+                                <Text style={styles.largeText}>Start</Text>
+                                <TouchableOpacity style={styles.buttonStart} onPress={() => showStartDatePicker()} onLongPress={() => showStartTimePicker()} >
+                                    <Icon name="today" size={20} color="black" style={{ marginRight: 6 }} />
+                                    <Text style={styles.buttonTextBlack}>{Common.formatToLocalDateString_inputIsDataObj(theTask.startdatetime)}</Text>
+                                </TouchableOpacity>
+
+                                <DateTimePickerModal
+                                    isVisible={showStartPicker}
+                                    mode="date"
+                                    date={theTask.startdatetime}
+                                    onConfirm={handleConfirmStartPicker}
+                                    onCancel={hideStartDatePicker}
+                                />
+                                <DateTimePickerModal
+                                    isVisible={showStartPicker_time}
+                                    mode="time"
+                                    date={theTask.startdatetime}
+                                    onConfirm={handleConfirmStartPicker_time}
+                                    onCancel={hideStartTimePicker}
+                                />
+
+                            </View>
+
+                            <View style={styles.row}>
+                                <Text style={styles.largeText}>Finish</Text>
+                                <TouchableOpacity style={styles.buttonEnd} onPress={() => showEndDatePicker()} onLongPress={() => showEndTimePicker()}>
+                                    <Icon name="event" size={20} color="black" style={{ marginRight: 6 }} />
+                                    <Text style={styles.buttonTextBlack}>{Common.formatToLocalDateString_inputIsDataObj(theTask.enddatetime)}</Text>
+                                </TouchableOpacity>
+
+                                <DateTimePickerModal
+                                    isVisible={showEndPicker}
+                                    mode="date"
+                                    date={theTask.enddatetime}
+                                    onConfirm={handleConfirmEndPicker}
+                                    onCancel={hideEndDatePicker}
+                                />
+
+                                <DateTimePickerModal
+                                    isVisible={showEndPicker_time}
+                                    mode="time"
+                                    date={theTask.enddatetime}
+                                    onConfirm={handleConfirmEndPicker_time}
+                                    onCancel={hideEndTimePicker}
+                                />
+
+                            </View>
+                            <TextInput
+                                style={styles.input}
+                                value={theTask.remarks}
+                                onChangeText={(text) => setTheTask({ ...theTask, remarks: text })}
+                                placeholder="additional remarks..."
+                            />
+
+                            <View style={styles.row}>
+                                <TouchableOpacity style={styles.editButton} onPress={() => handleSave()}>
+                                    <Icon name="add" size={20} color="#fff" style={{ marginRight: 6 }} />
+                                    <Text style={styles.buttonText}>  Add  </Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={styles.editButton} onPress={() => handleCancel()}>
+                                    <Icon name="cancel" size={20} color="#fff" style={{ marginRight: 6 }} />
+                                    <Text style={styles.buttonText}>  Cancel  </Text>
+                                </TouchableOpacity>
                             </View>
 
                         </View>
 
                     </View>
-                    <View style={styles.row}>
-                        <Text style={styles.largeText}>Start</Text>
-                        <TouchableOpacity style={styles.buttonStart} onPress={() => showStartDatePicker()} onLongPress={() => showStartTimePicker()} >
-                            <Icon name="today" size={20} color="black" style={{ marginRight: 6 }} />
-                            <Text style={styles.buttonTextBlack}>{Common.formatToLocalDateString_inputIsDataObj(theTask.startdatetime)}</Text>
-                        </TouchableOpacity>
+                    <View style={styles.bottomSection}>
+                        <View style={styles.containerFlatList}>
 
-                        <DateTimePickerModal
-                            isVisible={showStartPicker}
-                            mode="date"
-                            date={theTask.startdatetime}
-                            onConfirm={handleConfirmStartPicker}
-                            onCancel={hideStartDatePicker}
-                        />
-                        <DateTimePickerModal
-                            isVisible={showStartPicker_time}
-                            mode="time"
-                            date={theTask.startdatetime}
-                            onConfirm={handleConfirmStartPicker_time}
-                            onCancel={hideStartTimePicker}
-                        />
+                            {relationList && relationList.length > 0 && (
+                                <>
+                                    <Text style={styles.message}>You can add for ...</Text>
+                                    <FlatList
+                                        data={relationList}
+                                        keyExtractor={(item) => item.Userrelation.uniqueidentifyer}
+                                        renderItem={renderItem}
+                                    />
+                                </>
+                            )}
+                            {relationList && relationList.length == 0 && (
+                                <>
+                                    <Text style={styles.smallText}>Add relations of your friends/ family so that  you can add tasks for them. Click on UserRelation icon below !</Text>
+                                </>
+                            )}
+                        </View>
 
-                    </View>
-
-                    <View style={styles.row}>
-                        <Text style={styles.largeText}>Finish</Text>
-                        <TouchableOpacity style={styles.buttonEnd} onPress={() => showEndDatePicker()} onLongPress={() => showEndTimePicker()}>
-                            <Icon name="event" size={20} color="black" style={{ marginRight: 6 }} />
-                            <Text style={styles.buttonTextBlack}>{Common.formatToLocalDateString_inputIsDataObj(theTask.enddatetime)}</Text>
-                        </TouchableOpacity>
-
-                        <DateTimePickerModal
-                            isVisible={showEndPicker}
-                            mode="date"
-                            date={theTask.enddatetime}
-                            onConfirm={handleConfirmEndPicker}
-                            onCancel={hideEndDatePicker}
-                        />
-
-                        <DateTimePickerModal
-                            isVisible={showEndPicker_time}
-                            mode="time"
-                            date={theTask.enddatetime}
-                            onConfirm={handleConfirmEndPicker_time}
-                            onCancel={hideEndTimePicker}
-                        />
 
                     </View>
-                    <TextInput
-                        style={styles.input}
-                        value={theTask.remarks}
-                        onChangeText={(text) => setTheTask({ ...theTask, remarks: text })}
-                        placeholder="additional remarks..."
-                    />
-
-                    <View style={styles.row}>
-                        <TouchableOpacity style={styles.editButton} onPress={() => handleSave()}>
-                            <Icon name="add" size={20} color="#fff" style={{ marginRight: 6 }} />
-                            <Text style={styles.buttonText}>  Add  </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.editButton} onPress={() => handleCancel()}>
-                            <Icon name="cancel" size={20} color="#fff" style={{ marginRight: 6 }} />
-                            <Text style={styles.buttonText}>  Cancel  </Text>
-                        </TouchableOpacity>
-                    </View>
-
                 </View>
 
-            </View>
-            <View style={styles.bottomSection}>
-                <View style={styles.containerFlatList}>
-
-                    {relationList && relationList.length > 0 && (
-                        <>
-                            <Text style={styles.message}>You can add for ...</Text>
-                            <FlatList
-                                data={relationList}
-                                keyExtractor={(item) => item.Userrelation.uniqueidentifyer}
-                                renderItem={renderItem}
-                            />
-                        </>
-                    )}
-                    {relationList && relationList.length == 0 && (
-                        <>
-                            <Text style={styles.smallText}>Add relations of your friends/ family so that  you can add tasks for them. Click on UserRelation icon below !</Text>
-                        </>
-                    )}
-                </View>
+            </LinearGradient>
 
 
-            </View>
         </View>
+
+
+
 
 
 
@@ -455,7 +472,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'top',
         padding: 2,
-        backgroundColor: '#fff',
+        //backgroundColor: '#fff',
         width: '100%',
         marginVertical: 1,
         borderColor: 'black',
@@ -471,7 +488,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'top',
         padding: 2,
-        backgroundColor: '#fff',
+        //backgroundColor: '#fff',
         width: '100%', // Ensure full width
         marginVertical: 1
     },
@@ -479,10 +496,10 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         justifyContent: 'top',
-        padding: 2,
-        backgroundColor: '#fff',
+        padding: 0,
+        //backgroundColor: '#fff',
         width: '100%',
-        marginVertical: 1
+        marginVertical: 0
     },
     largeText: {
         textAlign: 'center',
@@ -584,7 +601,7 @@ const styles = StyleSheet.create({
     },
 
     editButton: {
-        backgroundColor: '#2196F3',
+        backgroundColor: Common.getColor("darkgreen"),
         paddingVertical: 8,
         paddingHorizontal: 14,
         borderRadius: 20, // Rounded corners
@@ -616,21 +633,21 @@ const styles = StyleSheet.create({
     switch: { transform: [{ scaleX: 1.5 }, { scaleY: 1.5 }], },
     middleSection: {
         flex: 6, // 80%
-        backgroundColor: '#d1ecf1',
+        //backgroundColor: '#d1ecf1',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1,          // Thickness of the border
-        borderColor: 'black',    // Border color
-        borderRadius: 5,         // Optional: rounded corners
+        //borderWidth: 1,          // Thickness of the border
+        //borderColor: 'black',    // Border color
+        //borderRadius: 5,         // Optional: rounded corners
         padding: 2,             // Optional: space inside the border
         margin: 2,              // Optional: space outside the border
     },
     bottomSection: {
         flex: 4, // 10%
-        backgroundColor: 'white',
-        borderWidth: 1,          // Thickness of the border
-        borderColor: 'black',    // Border color
-        borderRadius: 5,         // Optional: rounded corners
+        //backgroundColor: 'white',
+        //borderWidth: 1,          // Thickness of the border
+        //borderColor: 'black',    // Border color
+        //borderRadius: 5,         // Optional: rounded corners
         justifyContent: 'center',
         alignItems: 'center',
         padding: 5,

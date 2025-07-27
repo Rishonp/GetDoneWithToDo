@@ -12,6 +12,8 @@ import Toast from 'react-native-toast-message';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { BASE_URL } from '../utils/config';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Notifications from 'expo-notifications';
+import { usernotitoken } from '../utils/Users';
 
 // below 3 are for swipe left and right functionality 
 import { Dimensions } from 'react-native';
@@ -22,24 +24,6 @@ import { Dimensions } from 'react-native';
 //import ModifyTaskScreen from './ModifyTaskScreen';
 //import UserSettingsScreen from './UserSettingsScreen';
 
-function getColor(value) {
-  switch (value) {
-    case 'redred':
-      return '#EC6449';
-    case 'red':
-      return '#D78C27';
-    case 'amber':
-      return '#D4A414';
-    case 'green':
-      return '#7A9D43';
-    case 'darkgreen':
-      return '#4D5A3A';
-    case 'Ia1':
-      return '#A8A486';
-    case 'Ia2':
-      return '#C9C0A1';
-  }
-}
 
 
 function daysRelativeToDue(startDateTime, endDateTime) {
@@ -58,16 +42,16 @@ function daysRelativeToDue(startDateTime, endDateTime) {
   if (now > end) {
     let a = Math.floor((now - end) / MS_PER_DAY);
     if (a === 0) {
-      return { status: 'Now', days: "", color: getColor('red') };
+      return { status: 'Now', days: "", color: Common.getColor('red') };
     } else {
-      return { status: 'Past', days: a, color: getColor('red') };
+      return { status: 'Past', days: a, color: Common.getColor('red') };
     }
   } else {
     let b = Math.ceil((end - now) / MS_PER_DAY);
     if (b === 0) {
-      return { status: 'Now', days: "", color: getColor('red') };
+      return { status: 'Now', days: "", color: Common.getColor('red') };
     } else {
-      return { status: 'Due', days: b, color: 'green' };
+      return { status: 'Due', days: b, color: Common.getColor('green') };
     }
 
 
@@ -77,6 +61,19 @@ function daysRelativeToDue(startDateTime, endDateTime) {
 }
 
 const styles = StyleSheet.create({
+  watermarkLogo: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [
+      { translateX: -50 }, // Half of width to center
+      { translateY: -50 }  // Half of height to center
+    ],
+    width: 100,
+    height: 100,
+    opacity: 0.1, // Very subtle - 10% opacity
+    zIndex: 0, // Behind all other content
+  },
   centerIt: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -159,7 +156,7 @@ const styles = StyleSheet.create({
 
   smallBlackTextCentre: {
     color: 'black', // Black text
-    fontSize: 10,
+    fontSize: 15,
     fontWeight: '600',
     alignSelf: 'center', // Align to center of the container
     textAlignVertical: 'bottom', // For Android
@@ -229,6 +226,13 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 8,
   },
+  cardTitleBitSmall: {
+    fontSize: 20,
+    fontWeight: '400',
+    color: '#333',
+    marginBottom: 4,
+  },
+
   cardTitleNoMargin: {
     fontSize: 18,
     fontWeight: '600',
@@ -275,6 +279,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold'
 
   },
+
   titleSupport: {
     fontSize: 16,
     //fontFamily: 'Poppins-BoldItalic', // use the actual italic variant
@@ -292,7 +297,7 @@ const styles = StyleSheet.create({
   },
   topSection: {
     flex: .5, // 40%
-    backgroundColor: 'white',
+    //backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -319,21 +324,21 @@ const styles = StyleSheet.create({
     //backgroundColor: '#d6e7eaff',
     justifyContent: 'flex-start',
     alignItems: 'stretch',
-    borderWidth: 1,          // Thickness of the border
-    borderColor: 'black',    // Border color
-    borderRadius: 5,         // Optional: rounded corners
+    //borderWidth: 1,          // Thickness of the border
+    //borderColor: 'black',    // Border color
+    //borderRadius: 5,         // Optional: rounded corners
     //padding: 2,             // Optional: space inside the border
     //margin: 2,              // Optional: space outside the border
     width: '100%',
   },
   middle_bottom: {
     flex: 3, // 40%
-    backgroundColor: '#d6e7eaff',
+    //backgroundColor: '#d6e7eaff',
     justifyContent: 'flex-start',
     alignItems: 'stretch',
-    borderWidth: 1,          // Thickness of the border
-    borderColor: 'black',    // Border color
-    borderRadius: 5,         // Optional: rounded corners
+    //borderWidth: 1,          // Thickness of the border
+    //borderColor: 'black',    // Border color
+    //borderRadius: 5,         // Optional: rounded corners
     padding: 2,             // Optional: space inside the border
     margin: 2,              // Optional: space outside the border
     width: '100%',
@@ -474,7 +479,9 @@ const SwipeableTaskItem = ({
   navigateToModifyTaskScreen,
   shouldBeRed,
   findName,
-  Common
+  Common,
+  topORBottom,
+  handleNotification
 }) => {
   const pan = React.useRef(new Animated.Value(0)).current;
   const longPressTimer = React.useRef(null);
@@ -523,6 +530,25 @@ const SwipeableTaskItem = ({
           );
         } else if (gestureState.dx > 100) {
           // Right swipe - Mark as Done
+          if (topORBottom === "main") {
+            Alert.alert(
+              "Mark as Done",
+              "Are you sure you want to mark this main task as done?",
+              [
+                { text: "Cancel", onPress: () => resetPosition() },
+                { text: "Done", onPress: () => { handleTaskDone(item); resetPosition(); } }
+              ]
+            );
+          } else {
+            Alert.alert(
+              "Notify User",
+              "This will send a notification to the user. Do you want to proceed?",
+              [
+                { text: "Cancel", onPress: () => resetPosition() },
+                { text: "Done", onPress: () => { handleNotification(item); resetPosition(); } }
+              ]
+            );
+          }
           Alert.alert(
             "Mark as Done",
             "Are you sure you want to mark this task as done?",
@@ -632,7 +658,7 @@ const SwipeableTaskItem = ({
         <View style={[styles.rowMain]}>
           <View style={[styles.leftColumn]}>
             <View style={[styles.cardLeftRight, { backgroundColor: daysRelativeToDue(item.startdatetime, item.enddatetime).color }]}>
-              <Text style={[styles.cardTitle, { paddingLeft: 5 }, { color: 'white' }]}>{item.tasktext}</Text>
+              <Text style={[styles.cardTitleBitSmall, { paddingLeft: 5 }, { color: 'white' }]}>{item.tasktext}</Text>
               <View style={[styles.dateRow]}>
                 <Icon name="event" size={12} color="#black" />
                 <Text style={styles.cardDateSmall}>{Common.serverDatetoUTCDate(item.startdatetime)?.toLocaleString()}</Text>
@@ -649,9 +675,9 @@ const SwipeableTaskItem = ({
                 <Text style={[styles.cardTitleNoMargin, { color: 'white' }]}>{daysRelativeToDue(item.startdatetime, item.enddatetime).days}</Text>
               )
               }
-              {findName(item) !== '' && (
+              {findName(item, topORBottom) !== '' && (
                 <View style={styles.rowCentered}>
-                  <Text style={styles.verySmallWhiteText}>{`${findName(item)}`}</Text>
+                  <Text style={[styles.verySmallWhiteText, { color: 'black' }]}>{`${findName(item, topORBottom)}`}</Text>
                 </View>
               )}
 
@@ -696,11 +722,14 @@ export default function HomeScreen() {
   const [tasks, setTasks] = useState([]); // this contains only tasks
   const [taskWithAddedBy, setTaskWithAddedBy] = useState([]); // this contains tasks with added by user, this works along witht the tasks array
   const [tasksAddedByUser, setTasksAddedByUser] = useState([]); // this is the tasks he added to others
-  const [loading, setLoading] = useState(true);
-  const [loadingAddedTasks, setLoadingAddedTasks] = useState(false);
+  const [taskWithAddedBy_2, setTaskWithAddedBy_2] = useState([]);
+
   const { setCurrentUsrToken } = useContext(AuthContext);
   const { currentUsrToken } = useContext(AuthContext);
   const [message_s, setMessage] = useState('');
+
+
+  const [isLoading, setLoading] = useState(true);
 
   // below 2 are for  swipe left and right functionality
   const screenWidth = Dimensions.get('window').width;
@@ -713,10 +742,114 @@ export default function HomeScreen() {
     navigation.navigate('ModifyTaskScreen', { 'taskStringifyed': mainTaskStrinifyed })
   }
 
-  const handleNotification = (taskItem) => {
+  const handleNotification = async (taskItem) => {
     //console.log("handleNotification called for task: ", taskItem);
-    // Implement your notification logic here
-  }
+    //console.log("taskItem ID", taskItem.userid);
+    //console.log("taskItem added by ID", taskItem.addedby_userid);
+
+    console.log("Available Common functions:ZZZ", Object.keys(Common));
+    console.log("parseToUTCDateByAddingZ function:ZZZ", typeof Common.parseToUTCDateByAddingZ);
+    try {
+      // First, get the target user's push token from your database
+      const targetUserId = taskItem.userid;      // "71f424c6-3fbf-44a9-8e91-64c1e9e92b6e"; // Replace with the actual target user ID
+
+      let tokenResponse
+      try {
+        tokenResponse = await axios.get(`${BASE_URL}/getUserPushToken/`, { params: { userId: targetUserId } });
+      } catch (error) {
+        if (typeof error.response !== 'undefined') {
+          if (error.response.data?.detail) {
+            setMessage(error.response.data.detail)
+          } else {
+            setMessage(error.response.status)
+          }
+        } else if (error.request) {
+          setMessage(`No response from Server`)
+        } else {
+          setMessage(error.message)
+        }
+      }
+
+
+      // Get user's push token from backend
+      // console.log("getUserPushToken ran ok ", tokenResponse);
+      // console.log("Full tokenResponse:", JSON.stringify(tokenResponse, null, 2));
+      // console.log("tokenResponse.status:", tokenResponse.status);
+      // console.log("tokenResponse.data:", tokenResponse.data);
+      // console.log("Type of tokenResponse.data:", typeof tokenResponse.data);
+
+      if (!tokenResponse.data || !tokenResponse.data.notitoken) {
+        Toast.show({
+          type: 'error',
+          text1: 'User Not Available',
+          text2: 'User does not have push notifications enabled',
+          position: 'top'
+        });
+        return;
+      }
+      console.log("Token response: AAAA", tokenResponse.data);
+
+      const userPushToken = tokenResponse.data.notitoken;
+      console.log("userPushToken", userPushToken);
+
+      // Prepare notification payload
+      const notificationPayload = {
+        to: userPushToken,
+        sound: 'default',
+        title: `from ${currentUsrToken.user.username}`,
+        body: `Don't forget: ${taskItem.tasktext} due on ${Common.serverDatetoUTCDate(Common.parseToUTCDateByAddingZ(taskItem.enddatetime))?.toLocaleString()}`,
+        data: {
+          taskId: taskItem.uniqueidentifyer,
+          taskText: taskItem.tasktext,
+          fromUserId: currentUsrToken.user.userid,
+          fromUserName: currentUsrToken.user.username,
+          type: 'task_reminder'
+        },
+      };
+      console.log("Notification payload: ", notificationPayload);
+      // Send notification via Expo Push Notification service through your backend
+
+      const response = await axios.post(`${BASE_URL}/notify/`, notificationPayload, {
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+
+
+      // const response = await axios.post(`${BASE_URL}/notify/`, {
+      //   notificationPayload,
+      //   fromUserId: currentUsrToken.user.userid,
+      //   toUserId: targetUserId,
+      //   taskId: taskItem.uniqueidentifyer
+      // }, {
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //     "Authorization": `Bearer ${currentUsrToken.token}`
+      //   }
+      // });
+
+      if (response.status === 200) {
+        Toast.show({
+          type: 'success',
+          text1: 'Notification Sent! 🔔',
+          text2: `Reminder sent to user`,
+          position: 'top'
+        });
+      } else {
+        throw new Error('Failed to send notification');
+      }
+
+    } catch (error) {
+      console.error("Error sending push notification:", error);
+
+      Toast.show({
+        type: 'error',
+        text1: 'Notification Failed ❌',
+        text2: error.response?.data?.message || 'Could not send notification',
+        position: 'top'
+      });
+    }
+  };
 
 
   const handleTaskDelete = async (taskItem) => {
@@ -822,28 +955,20 @@ export default function HomeScreen() {
     }
   }
 
-  const getTasks = async () => {
+  const getTasks = async (mainORNot) => {
+    setLoading(true);
     try {
-      //console.log("Get tasks from Home screen called ")
-      // console.log("current token is ", currentUsrToken)
-      if (currentUsrToken === null) {
-        // this is an unlikely condition
+      if (currentUsrToken === null) { // this is an unlikely condition
         console.log("Logged in USER NOT FOUNT !!!1")
         setTasks([]);
         return
       }
-      const apiString = currentUsrToken.user.userid + "||||" + Common.getCurentDateAsStringYYMMDDHHMMSS_Plus_2_Months()
-      //console.log("apiString is .............................", apiString)
+      const apiString = currentUsrToken.user.userid + "||||" + Common.getCurentDateAsStringYYMMDDHHMMSS_Plus_2_Months() + "||||" + mainORNot
       const response = await axios.get(`${BASE_URL}/getalltasksforuser/`, { params: { inputData: apiString } });
-      //console.log("response.data ccccccccccccccccccccccccc", response.data)
       let taskInstances = []
       let taskWithAddedByArray = []
       if (response !== null && response.data !== null) {
         response.data.forEach(element => {
-          // console.log("element is ", element)
-          // console.log("element.maintask is ", element.maintask)
-          // console.log("element.added_by_name is ", element.added_by_name)
-          // console.log("element.addedby_userid is ", element.addedby_userid)
           taskInstances.push(MainTasks.fromDict(element.maintask));
           taskWithAddedByArray.push(new MainTaskWrapperWithAddedByName(
             MainTasks.fromDict(element.maintask),
@@ -851,25 +976,31 @@ export default function HomeScreen() {
             element.addedby_userid
           ));
         });
-
         //taskInstances = response.data.map(item => MainTasks.fromDict(item));
-
-        if (taskInstances.length === 0) {
-          //setMessage("No tasks found ")
+        if (mainORNot === "main") {
+          // Handle main tasks
+          setTasks(taskInstances);
+          setTaskWithAddedBy(taskWithAddedByArray);
+        } else {
+          // Handle sub-tasks
+          setTasksAddedByUser(taskInstances);
+          setTaskWithAddedBy_2(taskWithAddedByArray);
         }
-        setTasks(taskInstances);
-        setTaskWithAddedBy(taskWithAddedByArray);
-
       } else {
         console.log("We have a problem OR response is empty")
-        taskInstances = [];
-        taskWithAddedByArray = []
-        setTasks(taskInstances);
-        setTaskWithAddedBy(taskWithAddedByArray);
+        if (mainORNot === "main") {
+          // Handle main tasks
+          setTasks([]);
+          setTaskWithAddedBy([]);
+        } else {
+          // Handle sub-tasks
+          setTasksAddedByUser([]);
+          setTaskWithAddedBy_2([]);
+        }
         setMessage("No tasks found for the user")
       }
     } catch (error) {
-      console.error('Error fetching tasks:', error);
+      console.error('Error fetching tasks: ', error, mainORNot);
     } finally {
       setLoading(false);
     }
@@ -902,14 +1033,16 @@ export default function HomeScreen() {
   // Refresh tasks when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      getTasks();
-      getTasksAddedByUser();
+      getTasks("main");
+      getTasks("sub");
+      //getTasksAddedByUser();
     }, [])
   );
 
   useEffect(() => {
-    getTasks();
-    getTasksAddedByUser();
+    getTasks("main");
+    getTasks("sub");
+    //getTasksAddedByUser();
   }, []);
 
   // this function makes the task Red if starte date is of past  OR end date is in next 5 days
@@ -943,11 +1076,14 @@ export default function HomeScreen() {
     </View>
   );
 
-  const findName = (item) => {
-    const task = taskWithAddedBy.find(task => task.addedby_userid === item.addedby_userid && task.maintask.uniqueidentifyer === item.uniqueidentifyer);
-
-    if (item.addedby_userid === currentUsrToken.user.userid && item.userid === currentUsrToken.user.userid) {
-      return '';
+  const findName = (item, topORBottom) => {
+    //console.log("findName called with item:", item, "topORBottom:", topORBottom);
+    //console.log("findName called with taskWithAddedBy_2:", taskWithAddedBy_2);
+    let task;
+    if (topORBottom === "main") {
+      task = taskWithAddedBy.find(task => task.addedby_userid === item.addedby_userid && task.maintask.uniqueidentifyer === item.uniqueidentifyer);
+    } else {
+      task = taskWithAddedBy_2.find(task => task.maintask.userid === item.userid && task.maintask.uniqueidentifyer === item.uniqueidentifyer);
     }
 
     return task ? task.added_by_name : 'not found.....';
@@ -955,7 +1091,7 @@ export default function HomeScreen() {
 
 
 
-  const renderAddedTaskItem = ({ item }) => (
+  const renderAddedTaskItemOld = ({ item }) => (
     <View style={styles.addedTaskCard}>
       <Text style={styles.cardTitle}>{item.tasktext}</Text>
       <View style={styles.rowLeftAligned}>
@@ -990,7 +1126,23 @@ export default function HomeScreen() {
     </View>
   );
 
-  // const renderItemCopyyyyyyyy = ({ item }) => (
+
+  const renderAddedTaskItem = ({ item }) => (
+    <SwipeableTaskItem
+      item={item}
+      handleTaskDelete={handleTaskDelete}
+      handleTaskDone={handleTaskDone}
+      navigateToModifyTaskScreen={navigateToModifyTaskScreen}
+      shouldBeRed={shouldBeRed}
+      findName={findName}
+      Common={Common}
+      topORBottom={"sub"} // sub is for added by user tasks
+      handleNotification={handleNotification}
+    />
+  );
+
+
+
   //   <View style={[styles.card, shouldBeRed(item) && styles.cardRed]}>
   //     <Text style={styles.cardTitle}>{item.tasktext}</Text>
   //     <View style={styles.rowLeftAligned}>
@@ -1042,6 +1194,8 @@ export default function HomeScreen() {
         shouldBeRed={shouldBeRed}
         findName={findName}
         Common={Common}
+        topORBottom={"main"} // main is for main tasks and bottom is for added by user tasks
+        handleNotification={handleNotification}
       />
     );
   };
@@ -1154,9 +1308,25 @@ export default function HomeScreen() {
   //   // );
   // };
 
-  if (loading) return <ActivityIndicator size="large" color="#007AFF" style={styles.loader} />;
+  if (isLoading) {
+    // Show main loader only if both are loading initially
+    return <ActivityIndicator size="small" color="green" style={styles.loader} />;
+  }
   return (
-    <View style={styles.container}>
+
+    <LinearGradient
+      colors={[Common.getColor("backGradientEnd"), Common.getColor("backGradientStart")]}   // '#A4Be91'
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }}
+      style={styles.container}
+    >
+
+      <Image
+        source={require('../assets/logo2.png')} // Adjust path to your logo
+        style={styles.watermarkLogo}
+        resizeMode="contain"
+      />
+
       <View style={styles.topSection}>
         <View style={styles.rowLeftAligned}>
           {/* <Text style={styles.title}>{Common.toProperCase(currentUsrToken.user.username)} </Text> */}
@@ -1181,8 +1351,8 @@ export default function HomeScreen() {
           />
         </View>
         <View style={styles.middle_bottom}>
-          <Text style={styles.title}>Task you added for others</Text>
-          {loadingAddedTasks ? (
+          <Text style={[styles.titleSupport, { textAlign: 'center' }]}>Task you added for others</Text>
+          {isLoading ? (
             <ActivityIndicator size="small" color="#2196F3" style={{ marginTop: 10 }} />
           ) : (
             <FlatList
@@ -1201,7 +1371,7 @@ export default function HomeScreen() {
 
       <View style={styles.bottomSection}>
       </View>
-    </View>
+    </LinearGradient>
   );
 
 }

@@ -57,8 +57,47 @@ export const getpayLoadFromMainTask = (mainTask) => {
     return payload;
 }
 
+export const getColor = (value) => {
+    switch (value) {
+        case 'oldred':
+            return '#FDECEA';
+        case 'redred':
+            return '#EC6449';
+        case 'red':
+            return '#D78C27';
+        case 'amber':
+            return '#D4A414';
+        case 'green':
+            return '#7A9D43';
+        case 'darkgreen':
+            return '#4D5A3A';
+        case 'Ia1':
+            return '#A8A486';
+        case 'Ia2':
+            return '#C9C0A1';
+        case 'backGradientStart':
+            return '#869f64';
+        case 'backGradientEnd':
+            return '#ffffff';
+    }
+}
+
+
+
+export const parseToUTCDateByAddingZ = (dateString) => {
+    // Ensure Z is appended only if not already present
+    const utcString = dateString.endsWith("Z") ? dateString : `${dateString}Z`;
+    return new Date(utcString);
+};
+
+
 
 export const serverDatetoUTCDate = (inDate) => {
+    if (inDate && typeof inDate === "string") {
+        console.log("serverDatetoUTCDate called with string", inDate);
+        inDate = parseToUTCDateByAddingZ(inDate);
+    }
+
     if (!(inDate instanceof Date)) {
         console.log("EWRROR", typeof inDate);
         return null

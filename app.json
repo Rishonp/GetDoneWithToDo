@@ -26,7 +26,14 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-secure-store"
-    ]
+      "expo-secure-store",
+      "expo-notifications"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "39a0116d-d7cd-4db2-be46-526dffd17de2"
+      }
+    },
+    "owner": "rishonianp"
   }
 }

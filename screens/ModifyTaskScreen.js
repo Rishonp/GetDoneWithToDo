@@ -1,5 +1,5 @@
 import { useContext, useState, useEffect } from "react";
-import { View, TextInput, Button, Text, StyleSheet, Alert, TouchableOpacity, Switch } from 'react-native';
+import { View, TextInput, Button, Text, StyleSheet, Alert, TouchableOpacity, Switch, StatusBar, Platform } from 'react-native';
 import axios from 'axios';
 import Users from "../utils/Users";
 import Token, { UserNToken } from "../utils/Token";
@@ -13,9 +13,9 @@ import { Picker } from '@react-native-picker/picker';
 //import DateTimePicker from '@react-native-community/datetimepicker';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { Keyboard } from 'react-native';
-import { Platform } from 'react-native';
 import { BASE_URL } from '../utils/config';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const ModifyTaskScreen = ({ route, navigation }) => {
     const { taskStringifyed } = route.params;
@@ -254,31 +254,43 @@ const ModifyTaskScreen = ({ route, navigation }) => {
 
 
     return (
-        <View style={styles.container}>
-            <View style={styles.row}>
-                <Text style={styles.largeText}>Task Acknowledged</Text>
-                <Switch
-                    style={styles.switch}
-                    value={taskack_s}
-                    onValueChange={(value) => handleTaskAck(value)}
-                    trackColor={{
-                        false: '#FDECEA', // Bright red when off
-                        true: '#E8F5E8'   // Material green when on
-                    }}
-                    thumbColor={taskack_s ? 'grey' : 'grey'} // White thumb always
-                    ios_backgroundColor="#FDECEA" // iOS background when off
-                />
 
-            </View>
-            <TextInput
-                style={styles.input}
-                value={task_MainTask.tasktext}
-                onChangeText={(text) => setTask_MainTask({ ...task_MainTask, tasktext: text })}
-                placeholder="Task Text"
-            />
+        <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 0 }}>
+
+            <LinearGradient
+                colors={[Common.getColor("backGradientEnd"), Common.getColor("backGradientStart")]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={styles.container}
+            >
+                <View style={styles.container}>
+                    <View style={styles.row}>
+                        <Text style={styles.largeText}>Task Acknowledged</Text>
+                        <Switch
+                            style={styles.switch}
+                            value={taskack_s}
+                            onValueChange={(value) => handleTaskAck(value)}
+                            trackColor={{
+                                false: '#FDECEA', // Bright red when off
+                                true: Common.getColor("green")   // Material green when on
+                            }}
+                            thumbColor={taskack_s ? Common.getColor("darkgreen") : 'grey'} // White thumb always
+                            ios_backgroundColor="#FDECEA" // iOS background when off
+                        />
+
+                    </View>
+                    <TextInput
+                        style={styles.inputMainTaskText}
+                        value={task_MainTask.tasktext}
+                        onChangeText={(text) => setTask_MainTask({ ...task_MainTask, tasktext: text })}
+                        placeholder="Task Text"
+                        multiline={true}
+                        numberOfLines={6}
+                        scrollEnabled={true}
+                    />
 
 
-            {/* <View style={styles.pickerWrapper}>
+                    {/* <View style={styles.pickerWrapper}>
                 <Picker
                     selectedValue={task_MainTask.priority}
                     style={styles.picker}
@@ -292,123 +304,131 @@ const ModifyTaskScreen = ({ route, navigation }) => {
 
 
 
-            <View style={styles.row}>
-                <Text style={styles.largeText}>Priority          </Text>
-                <View style={styles.verticallyCentered}>
-                    <View style={[
-                        styles.pickerWrapper,
-                        { backgroundColor: task_MainTask.priority === 0 ? '#FDECEA' : '#E8F5E8' }
-                    ]}>
-                        <Picker
-                            selectedValue={task_MainTask.priority}
-                            style={styles.picker}
-                            onValueChange={(itemValue) => setTask_MainTask({ ...task_MainTask, priority: itemValue })}>
-                            <Picker.Item label="P0" value={0} />
-                            <Picker.Item label="P1" value={1} />
-                            <Picker.Item label="P2" value={2} />
-                        </Picker>
+                    <View style={styles.row}>
+                        <Text style={styles.largeText}>Priority          </Text>
+                        <View style={styles.verticallyCentered}>
+                            <View style={[
+                                styles.pickerWrapper,
+                                { backgroundColor: task_MainTask.priority === 0 ? '#FDECEA' : '#E8F5E8' }
+                            ]}>
+                                <Picker
+                                    selectedValue={task_MainTask.priority}
+                                    style={styles.picker}
+                                    onValueChange={(itemValue) => setTask_MainTask({ ...task_MainTask, priority: itemValue })}>
+                                    <Picker.Item label="P0" value={0} />
+                                    <Picker.Item label="P1" value={1} />
+                                    <Picker.Item label="P2" value={2} />
+                                </Picker>
+                            </View>
+
+                        </View>
+
+                    </View>
+
+
+
+
+
+                    <View style={styles.row}>
+                        <Text style={styles.largeText}>Done?</Text>
+
+
+                        <Switch
+                            style={styles.switch}
+                            value={donestatus_s}
+                            onValueChange={(value) => handleDoneStatus(value)}
+                            trackColor={{
+                                false: '#FDECEA', // Bright red when off
+                                true: Common.getColor("green")   // Material green when on
+                            }}
+                            thumbColor={donestatus_s ? Common.getColor("darkgreen") : 'grey'} // White thumb always
+                            ios_backgroundColor="#FDECEA" // iOS background when off
+                        />
+
+                    </View>
+                    <View style={styles.row}>
+                        <Text style={styles.largeText}>Start Date</Text>
+                        <TouchableOpacity style={styles.buttonStart} onPress={() => showStartDatePicker()} onLongPress={() => showStartTimePicker()}>
+                            <Icon name="today" size={20} color="black" style={{ marginRight: 6 }} />
+                            <Text style={styles.buttonTextBlack}>{task_MainTask.startdatetime?.toLocaleString()}</Text>
+                        </TouchableOpacity>
+
+                        <DateTimePickerModal
+                            isVisible={showStartPicker}
+                            mode="date"
+                            date={task_MainTask.startdatetime}
+                            onConfirm={handleConfirmStartPicker}
+                            onCancel={hideStartDatePicker}
+                        />
+
+                        <DateTimePickerModal
+                            isVisible={showStartPicker_time}
+                            mode="time"
+                            date={task_MainTask.startdatetime}
+                            onConfirm={handleConfirmStartPicker_time}
+                            onCancel={hideStartTimePicker}
+                        />
+
+
+                    </View>
+
+
+                    <View style={styles.row}>
+                        <Text style={styles.largeText}>End Date</Text>
+                        <TouchableOpacity style={styles.buttonEnd} onPress={() => showEndDatePicker()} onLongPress={() => showEndTimePicker()}>
+                            <Icon name="event" size={20} color="black" style={{ marginRight: 6 }} />
+                            <Text style={styles.buttonTextBlack}>{task_MainTask.enddatetime?.toLocaleString()}</Text>
+                        </TouchableOpacity>
+
+                        <DateTimePickerModal
+                            isVisible={showEndPicker}
+                            mode="date"
+                            date={task_MainTask.enddatetime}
+                            onConfirm={handleConfirmEndPicker}
+                            onCancel={hideEndDatePicker}
+                        />
+
+                        <DateTimePickerModal
+                            isVisible={showEndPicker_time}
+                            mode="time"
+                            date={task_MainTask.enddatetime}
+                            onConfirm={handleConfirmEndPicker_time}
+                            onCancel={hideEndTimePicker}
+                        />
+
+                    </View>
+
+                    <TextInput
+                        style={styles.input}
+                        value={task_MainTask.remarks}
+                        onChangeText={(text) => setTask_MainTask({ ...task_MainTask, remarks: text })}
+                        placeholder="Task Remarks"
+                    />
+
+                    <View style={styles.row}>
+
+                        <TouchableOpacity style={styles.editButton} onPress={() => handleSave()}>
+                            <Icon name="edit" size={20} color="#fff" style={{ marginRight: 6 }} />
+                            <Text style={styles.buttonText}>  Save  </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.editButton} onPress={() => handleCancel()}>
+                            <Icon name="cancel" size={20} color="#fff" style={{ marginRight: 6 }} />
+                            <Text style={styles.buttonText}>  Cancel  </Text>
+                        </TouchableOpacity>
+
+
+
                     </View>
 
                 </View>
 
-            </View>
 
 
+            </LinearGradient>
 
-
-
-            <View style={styles.row}>
-                <Text style={styles.largeText}>Done?</Text>
-
-
-                <Switch
-                    style={styles.switch}
-                    value={donestatus_s}
-                    onValueChange={(value) => handleDoneStatus(value)}
-                    trackColor={{
-                        false: '#FDECEA', // Bright red when off
-                        true: '#E8F5E8'   // Material green when on
-                    }}
-                    thumbColor={donestatus_s ? 'grey' : 'grey'} // White thumb always
-                    ios_backgroundColor="#FDECEA" // iOS background when off
-                />
-
-            </View>
-            <View style={styles.row}>
-                <Text style={styles.largeText}>Start Date</Text>
-                <TouchableOpacity style={styles.buttonStart} onPress={() => showStartDatePicker()} onLongPress={() => showStartTimePicker()}>
-                    <Icon name="today" size={20} color="black" style={{ marginRight: 6 }} />
-                    <Text style={styles.buttonTextBlack}>{task_MainTask.startdatetime?.toLocaleString()}</Text>
-                </TouchableOpacity>
-
-                <DateTimePickerModal
-                    isVisible={showStartPicker}
-                    mode="date"
-                    date={task_MainTask.startdatetime}
-                    onConfirm={handleConfirmStartPicker}
-                    onCancel={hideStartDatePicker}
-                />
-
-                <DateTimePickerModal
-                    isVisible={showStartPicker_time}
-                    mode="time"
-                    date={task_MainTask.startdatetime}
-                    onConfirm={handleConfirmStartPicker_time}
-                    onCancel={hideStartTimePicker}
-                />
-
-
-            </View>
-
-
-            <View style={styles.row}>
-                <Text style={styles.largeText}>End Date</Text>
-                <TouchableOpacity style={styles.buttonEnd} onPress={() => showEndDatePicker()} onLongPress={() => showEndTimePicker()}>
-                    <Icon name="event" size={20} color="black" style={{ marginRight: 6 }} />
-                    <Text style={styles.buttonTextBlack}>{task_MainTask.enddatetime?.toLocaleString()}</Text>
-                </TouchableOpacity>
-
-                <DateTimePickerModal
-                    isVisible={showEndPicker}
-                    mode="date"
-                    date={task_MainTask.enddatetime}
-                    onConfirm={handleConfirmEndPicker}
-                    onCancel={hideEndDatePicker}
-                />
-
-                <DateTimePickerModal
-                    isVisible={showEndPicker_time}
-                    mode="time"
-                    date={task_MainTask.enddatetime}
-                    onConfirm={handleConfirmEndPicker_time}
-                    onCancel={hideEndTimePicker}
-                />
-
-            </View>
-
-            <TextInput
-                style={styles.input}
-                value={task_MainTask.remarks}
-                onChangeText={(text) => setTask_MainTask({ ...task_MainTask, remarks: text })}
-                placeholder="Task Remarks"
-            />
-
-            <View style={styles.row}>
-
-                <TouchableOpacity style={styles.editButton} onPress={() => handleSave()}>
-                    <Icon name="edit" size={20} color="#fff" style={{ marginRight: 6 }} />
-                    <Text style={styles.buttonText}>  Save  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.editButton} onPress={() => handleCancel()}>
-                    <Icon name="cancel" size={20} color="#fff" style={{ marginRight: 6 }} />
-                    <Text style={styles.buttonText}>  Cancel  </Text>
-                </TouchableOpacity>
-
-
-
-            </View>
 
         </View>
+
     );
 
 
@@ -420,8 +440,8 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         justifyContent: 'top',
-        padding: 24,
-        backgroundColor: '#fff',
+        padding: 10,
+        //backgroundColor: '#fff',
     },
     largeText: {
         textAlign: 'center',
@@ -445,6 +465,24 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         color: '#333',
     },
+
+    inputMainTaskText: {
+        height: 'auto', // Change from fixed height (58) to auto
+        minHeight: 58, // Minimum height for single line
+        maxHeight: 90, // Maximum height for 3 lines (approximately 30px per line)
+        borderColor: 'black',
+        borderWidth: 1,
+        marginBottom: 20,
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 12, // Add vertical padding
+        fontSize: 16,
+        color: '#000',
+        textAlignVertical: 'top', // Align text to top  
+    },
+
+
+
     input: {
         height: 58,
         borderColor: 'black',
@@ -512,7 +550,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     editButton: {
-        backgroundColor: '#2196F3',
+        backgroundColor: Common.getColor("darkgreen"),
         paddingVertical: 8,
         paddingHorizontal: 14,
         borderRadius: 20, // Rounded corners

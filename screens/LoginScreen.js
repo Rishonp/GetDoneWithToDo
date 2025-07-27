@@ -1,5 +1,5 @@
 import { useContext, useState } from "react";
-import { View, TextInput, Button, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { View, TextInput, Button, Text, StyleSheet, Alert, TouchableOpacity, Image } from 'react-native';
 import axios from 'axios';
 import Users from "../utils/Users";
 import Token, { UserNToken } from "../utils/Token";
@@ -10,6 +10,7 @@ import { BASE_URL } from '../utils/config';
 import Toast from 'react-native-toast-message';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const LoginScreen = ({ route, navigation }) => {
     //console.log('LoginScreen rendereding... ');
@@ -91,7 +92,19 @@ const LoginScreen = ({ route, navigation }) => {
 
     //console.log('LoginScreen rendereding 2');
     return (
-        <View style={styles.container}>
+        <LinearGradient
+            colors={[Common.getColor("backGradientEnd"), Common.getColor("backGradientStart")]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={styles.container}
+        >
+            <Image
+                source={require('../assets/logo2.png')}
+                style={styles.watermarkLogo}
+                resizeMode="contain"
+            />
+
+
             <Text style={styles.title}>Login</Text>
 
             <TextInput
@@ -101,17 +114,16 @@ const LoginScreen = ({ route, navigation }) => {
                 keyboardType="default"
                 autoCapitalize="none"
                 onChangeText={setusername}
-                placeholderTextColor="#888"
-
+                placeholderTextColor={Common.getColor("placeholder")}
             />
 
             <TextInput
-                style={styles.input} z
+                style={styles.input}
                 placeholder="Password"
                 value={userpass_hashed_s}
                 secureTextEntry
                 onChangeText={setuserpass_hashed}
-                placeholderTextColor="#888"
+                placeholderTextColor={Common.getColor("placeholder")}
             />
 
             {message_s !== '' && (
@@ -127,16 +139,9 @@ const LoginScreen = ({ route, navigation }) => {
                     <Icon name="app-registration" size={20} color="#fff" style={{ marginRight: 6 }} />
                     <Text style={styles.buttonText}>  Sign up  </Text>
                 </TouchableOpacity>
-
             </View>
-
-
-
-
-
-
-        </View>
-    ); // end of return 
+        </LinearGradient>
+    );
 }
 
 export default LoginScreen;
@@ -144,14 +149,24 @@ export default LoginScreen;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
+        paddingTop: 2,
         padding: 24,
-        backgroundColor: '#fff',
+        backgroundColor: 'transparent',
+    },
+    watermarkLogo: {
+        width: 90,
+        height: 90,
+        alignSelf: 'center',
+        marginBottom: 5,
+        marginTop: 5,
+        opacity: 0.1,
+        zIndex: 0,
     },
     containerFlatList: {
         justifyContent: 'flex-start',
         padding: 2,
-        backgroundColor: '#fff',
+        backgroundColor: 'transparent',
         width: '100%',
         marginVertical: 1,
         // Remove: flex: 1,
@@ -161,61 +176,68 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontSize: 16,
         marginBottom: 20,
+        color: Common.getColor("textPrimary"),
+        fontWeight: '500',
+        zIndex: 1,
     },
     messageSuccess: {
         textAlign: 'center',
         fontSize: 16,
         marginBottom: 20,
+        color: Common.getColor("success"),
+        fontWeight: '600',
+        zIndex: 1,
     },
     title: {
         fontSize: 32,
-        marginBottom: 40,
+        marginBottom: 10,
         fontWeight: '600',
         textAlign: 'center',
-        color: '#333',
+        color: Common.getColor("textPrimary"),
+        zIndex: 1,
     },
     input: {
         height: 48,
-        borderColor: '#ccc',
-        borderWidth: 1,
+        borderColor: Common.getColor("inputBorder"),
+        borderWidth: 2,
         marginBottom: 20,
         borderRadius: 8,
         paddingHorizontal: 12,
         fontSize: 16,
-        color: '#000',
+        color: Common.getColor("textPrimary"),
+        backgroundColor: Common.getColor("inputBackground"),
+        fontWeight: '500',
+        zIndex: 1,
     },
     button: {
-        backgroundColor: '#1e90ff',
+        backgroundColor: Common.getColor("buttonPrimary"),
         paddingVertical: 14,
         borderRadius: 8,
         alignItems: 'center',
     },
     editButton: {
-        backgroundColor: '#2196F3',
+        backgroundColor: Common.getColor("buttonPrimary"),
         paddingVertical: 8,
         paddingHorizontal: 14,
-        borderRadius: 20, // Rounded corners
+        borderRadius: 20,
         alignSelf: 'flex-start',
         flexDirection: 'row',
         alignItems: 'center',
-
     },
     editButtonFull: {
-        backgroundColor: '#2196F3',
+        backgroundColor: Common.getColor("darkgreen"),
         paddingVertical: 12,
         paddingHorizontal: 14,
         borderRadius: 20,
-        width: '100%', // Full width
+        width: '100%',
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center', // Center content horizontally
-        marginBottom: 16, // Space between buttons
+        justifyContent: 'center',
+        marginBottom: 16,
     },
     buttonText: {
-        color: '#fff',
+        color: Common.getColor("buttonText"),
         fontSize: 18,
         fontWeight: '500',
     },
-
-
 });
