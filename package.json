@@ -10,6 +10,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@expo/vector-icons": "^14.1.0",
     "@react-native-community/checkbox": "^0.5.20",
     "@react-native-community/datetimepicker": "8.4.1",
     "@react-native-picker/picker": "^2.11.1",
@@ -26,6 +27,8 @@
     "expo-secure-store": "~14.2.3",
     "expo-status-bar": "~2.2.3",
     "install": "^0.13.0",
+    "lottie-ios": "^4.5.1",
+    "lottie-react-native": "7.2.2",
     "react": "19.0.0",
     "react-native": "0.79.3",
     "react-native-gesture-handler": "^2.27.2",

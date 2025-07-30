@@ -1,5 +1,5 @@
 import React, { useEffect, useState, createContext, useContext, act, useRef } from 'react';
-import { ActivityIndicator, View, SafeAreaView } from 'react-native';
+import { View, SafeAreaView } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -30,6 +30,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 // Add this import at the top with your other imports
 import Constants from 'expo-constants';
+import { MaterialIcons } from "@expo/vector-icons";
 
 
 import * as Device from 'expo-device'; // Add this line
@@ -87,24 +88,24 @@ const HomeTabs = () => {
           let iconName;
           if (route.name === 'HomeScreen') {
             return focused ? null : (
-              <Ionicons name="home-outline" size={size} color="#black" />
+              <Ionicons name="home-outline" size={size} color={Common.getColor('blueblue')} />
             );
           } else if (route.name === 'AddTask') {
             return focused ? null : (
-              <Ionicons name="create-outline" size={size} color="#black" />
+              <Ionicons name="create-outline" size={size} color={Common.getColor('blueblue')} />
             );
           } else if (route.name === 'RelationshipAck') {
             return focused ? null : (
-              <Ionicons name="people-circle-outline" size={size} color="#black" />
+              <Ionicons name="people-circle-outline" size={size} color={Common.getColor('blueblue')} />
             );
 
           } else if (route.name === 'UserRelationSimple') {
             return focused ? null : (
-              <Ionicons name="people-outline" size={size} color="#black" />
+              <Ionicons name="people-outline" size={size} color={Common.getColor('blueblue')} />
             );
           } else if (route.name === 'ModifyTaskScreen') {
             return focused ? null : (
-              <Ionicons name="create-outline" size={size} color="#black" />
+              <Ionicons name="create-outline" size={size} color={Common.getColor('blueblue')} />
             );
 
           } else if (route.name === 'Logout') {
@@ -133,8 +134,9 @@ const HomeTabs = () => {
           borderTopWidth: 1,
           //borderTopColor: '#e9ecef',
           height: 60,
-          paddingBottom: 2,
-          paddingTop: 2,
+          paddingBottom: 0,
+          paddingTop: 0,
+
         },
       })}>
 

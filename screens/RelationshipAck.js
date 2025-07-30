@@ -177,7 +177,8 @@ const RelationshipAck = ({ route, navigation }) => {
 
         <View style={styles.container}>
           <View style={styles.topSection}>
-            <Text style={styles.text}> Hello {Common.toProperCase(currentUsrToken.user.username)}</Text>
+            {/* <Text style={styles.text}> {Common.toProperCase(currentUsrToken.user.username)}</Text> */}
+            <Text style={styles.titleSupport}>Acknowledge to add tasks,get notifications</Text>
             {message_s !== '' && (
               <Text style={[styles.message, styles.messageSuccess]}>{message_s}</Text>
             )}
@@ -258,6 +259,16 @@ const RelationshipAck = ({ route, navigation }) => {
 export default RelationshipAck;
 
 const styles = StyleSheet.create({
+
+  titleSupport: {
+    alignItems: 'center',
+    textAlign: 'center',
+    fontSize: 14,
+    //fontFamily: 'Poppins-BoldItalic', // use the actual italic variant
+    fontStyle: 'italic',
+    //fontWeight: 'bold',
+  },
+
   container: {
     flex: 1,
     justifyContent: 'center',
@@ -302,7 +313,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   editButton: {
-    backgroundColor: Common.getColor("darkgreen"),
+    backgroundColor: Common.getColor("blueblue"),
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 20, // Rounded corners

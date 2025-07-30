@@ -1,5 +1,122 @@
 import { UserNToken } from "./Token"
 import * as SecureStore from 'expo-secure-store';
+import { BASE_URL } from '../utils/config';
+import axios from 'axios';
+import React from 'react';
+import { View, StyleSheet, Text } from 'react-native';
+import LottieView from 'lottie-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+
+export const handleNotification = async (taskItem, to_userid, userid, username, commingFrom) => {
+    console.log("handleNotification called with taskItem", taskItem, "to_userid", to_userid, "userid", userid, "username", username, "comingFrom", commingFrom);
+    let userPushToken
+    // First, get the target user's push token from your database
+    const targetUserId = to_userid;      // "71f424c6-3fbf-44a9-8e91-64c1e9e92b6e"; // Replace with the actual target user ID
+
+    userPushToken = await getNotiToken(targetUserId);
+    if (userPushToken === null || userPushToken === undefined || userPushToken === "" || userPushToken.includes("Error")) {
+        //   Toast.show({
+        //     type: 'error',
+        //     text1: 'User Not Available' + userPushToken,
+        //     text2: 'User does not have push notifications enabled',
+        //     position: 'top'
+        //   });
+        return "Error - User Not Available";
+    }
+
+    let resp = await sendNotofication(userPushToken, userid, username, taskItem, commingFrom);
+    if (resp === "") {
+        return "Notification Sent";
+        //   Toast.show({
+        //     type: 'success',
+        //     text1: 'Notification Sent! 🔔',
+        //     text2: `Reminder sent to user`,
+        //     position: 'top'
+        //   });
+    } else {
+        return "Error - Notification Failed";
+        //   Toast.show({
+        //     type: 'error',
+        //     text1: 'Notification Failed!',
+        //     text2: `Failed to send reminder to user`,
+        //     position: 'top'
+        //   });
+    }
+
+};
+
+
+
+
+export const getNotiToken = async (targetUserId) => {
+    let tokenResponse = null;
+    try {
+        tokenResponse = await axios.get(`${BASE_URL}/getUserPushToken/`, { params: { userId: targetUserId } });
+        if (!tokenResponse.data || !tokenResponse.data.notitoken) {
+            return "Error - No token found for the user";
+        }
+        return tokenResponse.data.notitoken;
+    } catch (error) {
+        if (typeof error.response !== 'undefined') {
+            if (error.response.data?.detail) {
+                return "Error - " + error.response.data.detail;
+            } else {
+                return "Error - " + error.response.status;
+            }
+        } else if (error.request) {
+            return "Error - No response from Server";
+        } else {
+            return "Error - " + error.message;
+        }
+    }
+}
+
+export const sendNotofication = async (userPushToken, fromUserId, fromUserName, taskItem, commingFrom) => {
+    let theMessage = "";
+    if (commingFrom === 'ModifyTaskScreen') {
+        theMessage = ` I updated the Task : ${taskItem.tasktext} `;
+    } else if (commingFrom === 'HomeScreen') {
+        theMessage = `Don't forget: ${taskItem.taskack !== 1 ? "To-Acknowledge " : ""} ${taskItem.tasktext} due on ${serverDatetoUTCDate(parseToUTCDateByAddingZ(taskItem.enddatetime))?.toLocaleString()}`;
+    }
+    const notificationPayload = {
+        to: userPushToken,
+        sound: 'default',
+        title: `from ${fromUserName}`,
+        body: theMessage,
+        data: {
+            taskId: taskItem.uniqueidentifyer,
+            taskText: taskItem.tasktext,
+            fromUserId: fromUserId,
+            fromUserName: fromUserName,
+            type: 'task_reminder'
+        },
+    };
+
+    try {
+        const response = await axios.post(`${BASE_URL}/notify/`, notificationPayload, {
+            headers: {
+                "Content-Type": "application/json"
+            }
+        });
+        if (response.status === 200) {
+            return "";
+        } else {
+            return "Error - Failed to send notification";
+        }
+    } catch (error) {
+        if (typeof error.response !== 'undefined') {
+            if (error.response.data?.detail) {
+                return "Error -" + error.response.data.detail;
+            } else {
+                return "Error -" + error.response.status;
+            }
+        } else if (error.request) {
+            return "Error - No response from Server";
+        } else {
+            return "Error - " + error.message;
+        }
+    }
+}
 
 
 
@@ -64,7 +181,46 @@ export const getColor = (value) => {
         case 'redred':
             return '#EC6449';
         case 'red':
-            return '#D78C27';
+            return '#FDE2E4';
+        case 'redText':
+            return '#E63946';
+        case 'amber':
+            return '#FFF4E6';
+        case 'amberText':
+            return '#FFB703';
+        case 'green':
+            return '#E0F7F4';
+        case 'greenText':
+            return '#2A9D8F';
+        case 'darkgreen':
+            return '#E6F0FF';
+        case 'blueblue':
+            return "#3A86FF";
+        case 'Ia1':
+            return '#A8A486';
+        case 'Ia2':
+            return '#C9C0A1';
+        case 'backGradientStart':
+            return '#A0C4FF';
+        case 'backGradientMiddle':
+            return '#D0EFFF';
+        case 'backGradientEnd':
+            return '#F9F7F7';
+
+
+
+    }
+}
+
+
+export const getColorOld = (value) => {
+    switch (value) {
+        case 'oldred':
+            return '#FDECEA';
+        case 'redred':
+            return '#EC6449';
+        case 'red':
+            return '#E85252';    // backup  #D78C27
         case 'amber':
             return '#D4A414';
         case 'green':
@@ -82,30 +238,68 @@ export const getColor = (value) => {
     }
 }
 
-
+export const isUTCDate = (x) => {
+    if (Object.prototype.toString.call(x) === "[object Date]" && !isNaN(x)) {
+        return x.toISOString() === x.toUTCString();
+    }
+    return false;
+}
 
 export const parseToUTCDateByAddingZ = (dateString) => {
+    //console.log("parseToUTCDateByAddingZ called with dateString", dateString);
+    //console.log("parseToUTCDateByAddingZ called with dateString", typeof dateString);
+    //console.log("parseToUTCDateByAddingZ called with dateString", dateString instanceof Date);
+    //typeof x === 'string'
     // Ensure Z is appended only if not already present
-    const utcString = dateString.endsWith("Z") ? dateString : `${dateString}Z`;
-    return new Date(utcString);
+    let utcString
+    if (dateString instanceof Date) {
+        if (isUTCDate(dateString)) {
+            console.log("Returning as it is Date", dateString);
+            return dateString; // If it's already a UTC date, return it as is
+        } else {
+            const year = dateString.getFullYear();
+            const month = String(dateString.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+            const day = String(dateString.getDate()).padStart(2, '0');  // Day of the month
+            const hours = String(dateString.getHours()).padStart(2, '0');   // Hours
+            const minutes = String(dateString.getMinutes()).padStart(2, '0'); // Minutes
+            const seconds = String(dateString.getSeconds()).padStart(2, '0'); // Seconds
+            //const milliseconds = String(dateString.getMilliseconds()).padStart(3, '0'); // Milliseconds
+            stringDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}Z`;
+            tmpDate = new Date(stringDate);
+            return tmpDate
+        }
+    }
+    if (typeof dateString === 'string') {
+        utcString = dateString.endsWith("Z") ? dateString : `${dateString}Z`;
+        return new Date(utcString);
+    } else {
+        return null; // Handle cases where dateString is not a string or Date
+    }
+
 };
 
 
 
 export const serverDatetoUTCDate = (inDate) => {
+    console.log("serverDatetoUTCDate called with inDate dddddddddddddddddd", inDate);
+    console.log("serverDatetoUTCDate called with inDate dddddddddddddddddd", typeof inDate);
+    console.log("serverDatetoUTCDate called with inDate dddddddddddddddddd", typeof inDate === "string");
+    console.log("serverDatetoUTCDate called with inDate dddddddddddddddddd", inDate instanceof Date);
+
     if (inDate && typeof inDate === "string") {
         console.log("serverDatetoUTCDate called with string", inDate);
         inDate = parseToUTCDateByAddingZ(inDate);
     }
 
     if (!(inDate instanceof Date)) {
-        console.log("EWRROR", typeof inDate);
+        console.log("EWRROR it is not date", typeof inDate);
         return null
     }
     if (!inDate) {
         console.log("EWRROR !inDate", inDate);
         return null;
     }
+    //console.log("OK till ehre eeeeeeee", String(inDate.getMonth() + 1).padStart(2, '0'));
     const year = inDate.getFullYear();
     const month = String(inDate.getMonth() + 1).padStart(2, '0'); // Months are 0-based
     const day = String(inDate.getDate()).padStart(2, '0');  // Day of the month
@@ -113,8 +307,8 @@ export const serverDatetoUTCDate = (inDate) => {
     const minutes = String(inDate.getMinutes()).padStart(2, '0'); // Minutes
     const seconds = String(inDate.getSeconds()).padStart(2, '0'); // Seconds
     //const milliseconds = String(inDate.getMilliseconds()).padStart(3, '0'); // Milliseconds
-    stringDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}Z`;
-    tmpDate = new Date(stringDate);
+    let stringDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}Z`;
+    let tmpDate = new Date(stringDate);
     return tmpDate
 };
 
@@ -296,3 +490,51 @@ export const toProperCase = (str) => {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
 }
+
+
+export const LoadingScreen = () => {
+    //console.log("LoadingScreen is being rendered"); // Add this to debug
+
+
+
+    return (
+
+        <LinearGradient
+            colors={[getColor("backGradientEnd"), getColor("backGradientStart")]}   // '#A4Be91'
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={styles.container}
+        >
+            <LottieView
+                source={require('../assets/checkbox.json')}
+                autoPlay
+                loop
+                style={{ width: 200, height: 200 }}
+            />
+
+        </LinearGradient>
+
+
+
+
+
+        // <View style={styles.container}>
+        //     <Text style={styles.loadingText}>Loading......</Text>
+        // </View>
+    );
+}
+
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        //backgroundColor: '#fff'
+    },
+    loadingText: {
+        fontSize: 18,
+        color: '#666',
+        fontWeight: '600',
+    }
+});

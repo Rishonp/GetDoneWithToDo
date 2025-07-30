@@ -1,5 +1,5 @@
 import { useContext, useState, useEffect } from "react";
-import { View, TextInput, Button, Text, StyleSheet, Alert, TouchableOpacity, Switch, StatusBar, Platform } from 'react-native';
+import { View, TextInput, Button, Text, StyleSheet, Alert, TouchableOpacity, Switch, StatusBar, Platform, Modal } from 'react-native';
 import axios from 'axios';
 import Users from "../utils/Users";
 import Token, { UserNToken } from "../utils/Token";
@@ -21,9 +21,11 @@ const ModifyTaskScreen = ({ route, navigation }) => {
     const { taskStringifyed } = route.params;
     let local_task = new MainTasks()
     local_task = MainTasks.fromStringDict(taskStringifyed)
+    const [original_MainTask, setOriginal_MainTask] = useState(local_task); // this is only to check if the user has changed anything before we save it 
     const [task_MainTask, setTask_MainTask] = useState(local_task);
     const { setToken } = useContext(AuthContext);
     const { setCurrentUsrToken } = useContext(AuthContext);
+    const { currentUsrToken } = useContext(AuthContext);
     const { token } = useContext(AuthContext);
     const [message_s, setMessage] = useState('');
     const [loading, setLoading] = useState(true);
@@ -38,6 +40,19 @@ const ModifyTaskScreen = ({ route, navigation }) => {
 
     const [showStartPicker_time, setShowStartPicker_time] = useState(false);
     const [showEndPicker_time, setShowEndPicker_time] = useState(false);
+
+    const [showPriorityPicker, setShowPriorityPicker] = useState(false);
+
+
+    const priorityOptions = [
+        { label: 'P0', value: 0 },
+        { label: 'P1', value: 1 },
+        { label: 'P2', value: 2 }
+    ];
+
+    const isModified = (oT, mT) => {
+        return (JSON.stringify(oT) === JSON.stringify(mT));
+    }
 
 
     const showStartTimePicker = () => {
@@ -171,7 +186,113 @@ const ModifyTaskScreen = ({ route, navigation }) => {
         setShowStartPicker(false);
     };
 
+
+
+    const handleNotification_Local = async (taskItem) => {
+        //console.log("handleNotification_Local called with taskItem", taskItem);
+        console.log("handleNotification_Local called with currentUsrToken.user", currentUsrToken.user);
+        let resp = await Common.handleNotification(taskItem, taskItem.userid, currentUsrToken.user.userid, currentUsrToken.user.username, 'HomeScreen')
+        if (resp.includes("Error")) {
+            Toast.show({
+                type: 'error',
+                text1: 'Notification Error',
+                text2: 'Failed to send notification. Please try again later. ' + resp,
+            });
+        } else {
+            Toast.show({
+                type: 'success',
+                text1: 'Notification Sent',
+                text2: 'User has been notified successfully.',
+            });
+        }
+
+    };
+
+
+
+    const renderPriorityPicker = () => {
+        if (Platform.OS === 'ios') {
+            return (
+                <>
+                    <TouchableOpacity
+                        style={[
+                            styles.pickerButton,
+                            { backgroundColor: task_MainTask.priority === 0 ? '#FDECEA' : '#E8F5E8' }
+                        ]}
+                        onPress={() => setShowPriorityPicker(true)}
+                    >
+                        <Text style={styles.pickerButtonText}>
+                            P{task_MainTask.priority}
+                        </Text>
+                    </TouchableOpacity>
+
+                    <Modal
+                        visible={showPriorityPicker}
+                        transparent={true}
+                        animationType="slide"
+                    >
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalContent}>
+                                <Text style={styles.modalTitle}>Select Priority</Text>
+                                {priorityOptions.map((option) => (
+                                    <TouchableOpacity
+                                        key={option.value}
+                                        style={[
+                                            styles.modalOption,
+                                            task_MainTask.priority === option.value && styles.selectedOption
+                                        ]}
+                                        onPress={() => {
+                                            setTask_MainTask({ ...task_MainTask, priority: option.value });
+                                            setShowPriorityPicker(false);
+                                        }}
+                                    >
+                                        <Text style={styles.modalOptionText}>{option.label}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                                <TouchableOpacity
+                                    style={styles.modalCancel}
+                                    onPress={() => setShowPriorityPicker(false)}
+                                >
+                                    <Text style={styles.modalCancelText}>Cancel</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </Modal>
+                </>
+            );
+        } else {
+            return (
+                <View style={[
+                    styles.pickerWrapper,
+                    { backgroundColor: task_MainTask.priority === 0 ? '#FDECEA' : '#E8F5E8' }
+                ]}>
+                    <Picker
+                        selectedValue={task_MainTask.priority}
+                        style={styles.picker}
+                        onValueChange={(itemValue) => setTask_MainTask({ ...task_MainTask, priority: itemValue })}
+                    >
+                        <Picker.Item label="P0" value={0} />
+                        <Picker.Item label="P1" value={1} />
+                        <Picker.Item label="P2" value={2} />
+                    </Picker>
+                </View>
+            );
+        }
+    };
+
+
+
+
     const handleSave = async () => {
+        // check if the user has modified the task
+        if (isModified(original_MainTask, task_MainTask) === true) {
+            Alert.alert("No changes made", "You have not made any changes to the task.");
+            return;
+        }
+
+
+        //currentUsrToken
+
         const payload = Common.getpayLoadFromMainTask111(task_MainTask)
         try {
             const response = await axios.post(`${BASE_URL}/UpdateTask/`, payload, {
@@ -179,16 +300,49 @@ const ModifyTaskScreen = ({ route, navigation }) => {
                     "Content-Type": "application/json"
                 }
             });
+            if (response.status === 200) {
+                // notify if this task has addedBy == not empty
+                if (task_MainTask.addedby !== '') {
+                    Alert.alert("Task Updated", "Task has been updated successfully.");
+                }
+
+                let send_to_userId = "" // if rishon logged in then send to Mom( added by ) , if mom logged in then send to Rishon ( original userID ) 
+                console.log("Logged in ", currentUsrToken.user.userid);
+                console.log("main task", task_MainTask);
+
+
+                if (currentUsrToken.user.userid === task_MainTask.userid) {
+                    // notify the user that the task has been updated
+                    send_to_userId = task_MainTask.addedby_userid;
+                } else if (currentUsrToken.user.userid === task_MainTask.addedby_userid) {
+                    send_to_userId = task_MainTask.userid;
+                }
+                console.log("send_to_userId Final ", send_to_userId);
+                if (send_to_userId !== "") { // means send notification
+                    Common.handleNotification(task_MainTask, send_to_userId, task_MainTask.userid, currentUsrToken.user.username, 'ModifyTaskScreen');
+                }
+                navigation.goBack();
+            }
 
         } catch (error) {
-            console.error('Error saving task as done ', error);
+            if (typeof error.response !== 'undefined') {
+                if (error.response.data?.detail) {
+                    setMessage(error.response.data.detail);
+                } else {
+                    setMessage("Error -" + error.response.status);
+                }
+            } else if (error.request) {
+                setMessage("Error - No response from Server");
+            } else {
+                setMessage("Error - " + error.message);
+            }
         }
         // Save logic here (API call or state update)
         // After saving, go back
 
         //console.log("Saving task:", task_MainTask);
         //navigation.navigate('HomeScreen');
-        navigation.goBack()
+
     };
 
     const handleCancel = () => {
@@ -244,6 +398,7 @@ const ModifyTaskScreen = ({ route, navigation }) => {
             local_task.donestatus_datetime = Common.serverDatetoUTCDate(local_task.donestatus_datetime);
             local_task.taskack_datetime = Common.serverDatetoUTCDate(local_task.taskack_datetime);
             setTask_MainTask(local_task);
+            setOriginal_MainTask(local_task); // set the original task to the local task
         }
     }
 
@@ -311,14 +466,15 @@ const ModifyTaskScreen = ({ route, navigation }) => {
                                 styles.pickerWrapper,
                                 { backgroundColor: task_MainTask.priority === 0 ? '#FDECEA' : '#E8F5E8' }
                             ]}>
-                                <Picker
+                                {renderPriorityPicker()}
+                                {/* <Picker
                                     selectedValue={task_MainTask.priority}
                                     style={styles.picker}
                                     onValueChange={(itemValue) => setTask_MainTask({ ...task_MainTask, priority: itemValue })}>
                                     <Picker.Item label="P0" value={0} />
                                     <Picker.Item label="P1" value={1} />
                                     <Picker.Item label="P2" value={2} />
-                                </Picker>
+                                </Picker> */}
                             </View>
 
                         </View>
@@ -415,8 +571,9 @@ const ModifyTaskScreen = ({ route, navigation }) => {
                             <Icon name="cancel" size={20} color="#fff" style={{ marginRight: 6 }} />
                             <Text style={styles.buttonText}>  Cancel  </Text>
                         </TouchableOpacity>
-
-
+                        {message_s !== '' && (
+                            <Text style={[styles.message, styles.messageSuccess]}>{message_s}</Text>
+                        )}
 
                     </View>
 
@@ -437,6 +594,90 @@ const ModifyTaskScreen = ({ route, navigation }) => {
 
 export default ModifyTaskScreen;
 const styles = StyleSheet.create({
+
+    pickerButton: {
+        borderWidth: 1,
+        borderColor: '#888',
+        borderRadius: 20,
+        height: 44,
+        width: 150,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 15,
+        backgroundColor: '#f0f0f0',
+    },
+
+    pickerButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#000',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 20, // Add horizontal padding
+    },
+    modalContent: {
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 20,
+        width: '80%',
+        maxWidth: 300, // Add max width
+        alignSelf: 'center', // Ensure self-centering
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 20,
+        color: '#333',
+    },
+
+    modalOption: {
+        padding: 15,
+        borderRadius: 10,
+        marginVertical: 5,
+        backgroundColor: '#f5f5f5',
+        alignItems: 'center',
+    },
+    selectedOption: {
+        backgroundColor: '#E8F5E8',
+        borderWidth: 2,
+        borderColor: '#4CAF50',
+    },
+
+    modalOptionText: {
+        fontSize: 16,
+        textAlign: 'center',
+        fontWeight: '600',
+        color: '#333',
+    },
+    modalCancel: {
+        marginTop: 15,
+        padding: 15,
+        backgroundColor: '#ff6b6b',
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    modalCancelText: {
+        color: 'white',
+        fontSize: 16,
+        textAlign: 'center',
+        fontWeight: '600',
+    },
+
+    // above styles are for the modal
+
     container: {
         flex: 1,
         justifyContent: 'top',
@@ -550,7 +791,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     editButton: {
-        backgroundColor: Common.getColor("darkgreen"),
+        backgroundColor: Common.getColor("blueblue"),
         paddingVertical: 8,
         paddingHorizontal: 14,
         borderRadius: 20, // Rounded corners

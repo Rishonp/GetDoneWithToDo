@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     editButton: {
-        backgroundColor: Common.getColor("darkgreen"),
+        backgroundColor: Common.getColor("blueblue"),
         paddingVertical: 8,
         paddingHorizontal: 14,
         borderRadius: 20, // Rounded corners

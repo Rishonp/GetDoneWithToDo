@@ -5,9 +5,10 @@ import {
   FlatList,
   Text,
   StyleSheet,
-  ActivityIndicator,
+
 } from 'react-native';
 import { BASE_URL } from '../utils/config';
+import * as Common from '../utils/Common';
 
 
 export default function UserSearchScreen() {
@@ -65,11 +66,8 @@ export default function UserSearchScreen() {
   );
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
+
+    return <Common.LoadingScreen />;
   }
 
   return (

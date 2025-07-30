@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from "react";
-import { View, TextInput, Button, Text, StyleSheet, Alert, TouchableOpacity, Switch, FlatList, StatusBar, Platform } from 'react-native';
+import { View, TextInput, Button, Text, StyleSheet, Alert, TouchableOpacity, Switch, FlatList, StatusBar, Platform, Modal } from 'react-native';
 import axios from 'axios';
 import Users from "../utils/Users";
 import Token, { UserNToken } from "../utils/Token";
@@ -16,6 +16,7 @@ import { Keyboard } from 'react-native';
 import { BASE_URL } from '../utils/config';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
+
 
 const AddTask = ({ route, navigation }) => {
     const { currentUsrToken } = useContext(AuthContext);
@@ -48,10 +49,93 @@ const AddTask = ({ route, navigation }) => {
     const [selectedId, setSelectedId] = useState(null); // this is for the selected item in FlatList of relationships - this is the unique Identifier
     const [selectedId_relation, setSelectedId_relation] = useState(null); // this is for the selected item in FlatList of relationships - this is the relation ID
 
+    const [showPriorityPicker, setShowPriorityPicker] = useState(false);
 
+    const priorityOptions = [
+        { label: 'P0', value: 0 },
+        { label: 'P1', value: 1 },
+        { label: 'P2', value: 2 }
+    ];
+
+
+    const renderPriorityPicker = () => {
+        if (Platform.OS === 'ios') {
+            return (
+                <>
+                    <TouchableOpacity
+                        style={[
+                            styles.pickerButton,
+                            { backgroundColor: theTask.priority === 0 ? '#FDECEA' : '#E8F5E8' }
+                        ]}
+                        onPress={() => setShowPriorityPicker(true)}
+                    >
+                        <Text style={styles.pickerButtonText}>
+                            P{theTask.priority}
+                        </Text>
+                    </TouchableOpacity>
+
+                    <Modal
+                        visible={showPriorityPicker}
+                        transparent={true}
+                        animationType="slide"
+                    >
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalContent}>
+                                <Text style={styles.modalTitle}>Select Priority</Text>
+                                {priorityOptions.map((option) => (
+                                    <TouchableOpacity
+                                        key={option.value}
+                                        style={[
+                                            styles.modalOption,
+                                            theTask.priority === option.value && styles.selectedOption
+                                        ]}
+                                        onPress={() => {
+                                            setTheTask({ ...theTask, priority: option.value });
+                                            setShowPriorityPicker(false);
+                                        }}
+                                    >
+                                        <Text style={styles.modalOptionText}>{option.label}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                                <TouchableOpacity
+                                    style={styles.modalCancel}
+                                    onPress={() => setShowPriorityPicker(false)}
+                                >
+                                    <Text style={styles.modalCancelText}>Cancel</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </Modal>
+                </>
+            );
+        } else {
+            return (
+                <View style={[
+                    styles.pickerWrapper,
+                    { backgroundColor: theTask.priority === 0 ? '#FDECEA' : '#E8F5E8' }
+                ]}>
+                    <Picker
+                        selectedValue={theTask.priority}
+                        style={styles.picker}
+                        onValueChange={(itemValue) => setTheTask({ ...theTask, priority: itemValue })}
+                    >
+                        <Picker.Item label="P0" value={0} />
+                        <Picker.Item label="P1" value={1} />
+                        <Picker.Item label="P2" value={2} />
+                    </Picker>
+                </View>
+            );
+        }
+    };
 
 
     const handleSave = async () => {
+        if (theTask.tasktext.trim() === '') {
+            setMessage("Task description required");
+            return;
+        }
+
+
         console.log("Saving task with start date", theTask.startdatetime);
         if (selectedId == null || selectedId === undefined || selectedId === '') {
             // this means user has not selected any relation from the list
@@ -107,6 +191,7 @@ const AddTask = ({ route, navigation }) => {
 
 
     const OnPageLoad = async () => {
+        setLoading(true);
         setTheTask({
             userid: currentUsrToken.user.userid,
             tasktext: '',
@@ -162,6 +247,8 @@ const AddTask = ({ route, navigation }) => {
             } else {
                 setMessage(error.message)
             }
+        } finally {
+            setLoading(false);
         }
 
 
@@ -296,6 +383,10 @@ const AddTask = ({ route, navigation }) => {
         </View>
     );
 
+    if (loading) {
+        return <Common.LoadingScreen />;
+    }
+
     return (
 
         <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 0 }}>
@@ -317,7 +408,7 @@ const AddTask = ({ route, navigation }) => {
                                 placeholder="add a new Task..."
                             />
 
-                            <View style={styles.row}>
+                            <View style={[styles.row, { paddingRight: 10 }]}>
                                 <Text style={styles.largeText}>Done?</Text>
 
                                 {/* <Switch style={styles.switch} value={theTask.donestatus == 1 ? true : false} onValueChange={(value) => setTheTask({ ...theTask, donestatus: value == true ? 1 : 0 })} /> */}
@@ -345,14 +436,16 @@ const AddTask = ({ route, navigation }) => {
                                         styles.pickerWrapper,
                                         { backgroundColor: theTask.priority === 0 ? '#FDECEA' : '#E8F5E8' }
                                     ]}>
-                                        <Picker
+                                        {renderPriorityPicker()}
+
+                                        {/* <Picker
                                             selectedValue={theTask.priority}
                                             style={styles.picker}
                                             onValueChange={(itemValue) => setTheTask({ ...theTask, priority: itemValue })}>
                                             <Picker.Item label="P0" value={0} />
                                             <Picker.Item label="P1" value={1} />
                                             <Picker.Item label="P2" value={2} />
-                                        </Picker>
+                                        </Picker> */}
                                     </View>
 
                                 </View>
@@ -425,6 +518,9 @@ const AddTask = ({ route, navigation }) => {
                             </View>
 
                         </View>
+                        {message_s !== '' && (
+                            <Text style={[styles.message, styles.messageSuccess]}>{message_s}</Text>
+                        )}
 
                     </View>
                     <View style={styles.bottomSection}>
@@ -467,6 +563,89 @@ const AddTask = ({ route, navigation }) => {
 
 export default AddTask;
 const styles = StyleSheet.create({
+
+    pickerButton: {
+        borderWidth: 1,
+        borderColor: '#888',
+        borderRadius: 20,
+        height: 44,
+        width: 150,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 15,
+        backgroundColor: '#f0f0f0',
+    },
+
+    pickerButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#000',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 20, // Add horizontal padding
+    },
+    modalContent: {
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 20,
+        width: '80%',
+        maxWidth: 300, // Add max width
+        alignSelf: 'center', // Ensure self-centering
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 20,
+        color: '#333',
+    },
+
+    modalOption: {
+        padding: 15,
+        borderRadius: 10,
+        marginVertical: 5,
+        backgroundColor: '#f5f5f5',
+        alignItems: 'center',
+    },
+    selectedOption: {
+        backgroundColor: '#E8F5E8',
+        borderWidth: 2,
+        borderColor: '#4CAF50',
+    },
+
+    modalOptionText: {
+        fontSize: 16,
+        textAlign: 'center',
+        fontWeight: '600',
+        color: '#333',
+    },
+    modalCancel: {
+        marginTop: 15,
+        padding: 15,
+        backgroundColor: '#ff6b6b',
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    modalCancelText: {
+        color: 'white',
+        fontSize: 16,
+        textAlign: 'center',
+        fontWeight: '600',
+    },
+
+    // above styles are for the modal
 
     containerWBorder: {
         flex: 1,
@@ -601,7 +780,7 @@ const styles = StyleSheet.create({
     },
 
     editButton: {
-        backgroundColor: Common.getColor("darkgreen"),
+        backgroundColor: Common.getColor("blueblue"),
         paddingVertical: 8,
         paddingHorizontal: 14,
         borderRadius: 20, // Rounded corners

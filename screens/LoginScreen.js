@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     editButtonFull: {
-        backgroundColor: Common.getColor("darkgreen"),
+        backgroundColor: Common.getColor("blueblue"),
         paddingVertical: 12,
         paddingHorizontal: 14,
         borderRadius: 20,
