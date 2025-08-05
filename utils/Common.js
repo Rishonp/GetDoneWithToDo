@@ -3,9 +3,279 @@ import * as SecureStore from 'expo-secure-store';
 import { BASE_URL } from '../utils/config';
 import axios from 'axios';
 import React from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet, Text, Platform } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+
+import * as Calendar from 'expo-calendar';
+import * as Linking from 'expo-linking';
+import { taskcal } from "./Users";
+
+
+
+export const getDisplayMode = (mode) => {
+    // Inline only works on iOS 14+ for "date" mode
+    if (Platform.OS === "ios" && mode === "date" && parseInt(Platform.Version, 10) >= 14) {
+        return "inline"; // Calendar style
+    }
+    return "spinner"; // Works everywhere
+};
+
+
+export const getpayload_taskcal = (taskcal) => {
+    return {
+        params: {
+            uniqueidentifyer: taskcal.uniqueidentifyer,
+            eventid: taskcal.eventid,
+            maintask_uniqueidentifyer: taskcal.maintask_uniqueidentifyer
+        }
+    }
+}
+
+
+
+
+// Request permission to use Calendar
+export const requestPermission = async () => {
+    const { status } = await Calendar.requestCalendarPermissionsAsync();
+    if (status !== 'granted') {
+        //Alert.alert('Permission Required', 'Calendar permission is required.');
+        return false;
+    }
+    return true;
+}
+
+
+// Get default calendar ID
+export const getDefaultCalendarId = async () => {
+    const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+    const defaultCalendar = calendars.find(c => c.isPrimary) || calendars[0];
+    return defaultCalendar?.id;
+}
+
+
+// Fetch event details by ID
+export const fetchEventDetails = async (id) => {
+    if (!id) {
+        Alert.alert('Error', 'No event ID provided.');
+        return;
+    }
+    try {
+        const event = await Calendar.getEventAsync(id);
+        if (event) {
+            console.log('Event details:', event);
+            return event;
+        } else {
+            Alert.alert('Not Found', 'Event not found.');
+            return null;
+        }
+    } catch (error) {
+        console.error('Error fetching event:', error);
+        return null;
+    }
+}
+
+
+export const getDeviceTimeZone = () => {
+    try {
+        // Get the device's timezone
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        console.log("Device timezone:", timeZone);
+        return timeZone;
+    } catch (error) {
+        console.error("Error getting device timezone:", error);
+        // Fallback to a default timezone
+        return "America/New_York";
+    }
+};
+
+// Add timezone validation function
+export const validateTimeZone = (timeZone) => {
+    try {
+        // Test if the timezone is valid by creating a date with it
+        new Intl.DateTimeFormat('en-US', { timeZone }).format(new Date());
+        return timeZone;
+    } catch (error) {
+        console.warn(`Invalid timezone: ${timeZone}, falling back to America/New_York`);
+        return "America/New_York";
+    }
+};
+
+
+// Create event
+export const createEvent = async (title, location, startDate, endDate, notes, timeZone) => {
+    if (!(await requestPermission())) return;
+
+    const calendarId = await getDefaultCalendarId();
+    if (!calendarId) {
+        Alert.alert('Error', 'No calendar found on this device.');
+        return;
+    }
+
+    // Get the device timezone if not provided
+    const deviceTimeZone = timeZone || getDeviceTimeZone();
+    const validTimeZone = validateTimeZone(deviceTimeZone);
+
+    console.log("Using timezone for calendar event:", validTimeZone);
+    try {
+        const id = await Calendar.createEventAsync(calendarId, {
+            title,
+            location,
+            startDate,
+            endDate,
+            notes: 'GetDoneWithToDo',
+            timeZone: validTimeZone,  //'America/New_York',
+        });
+        return id;
+        //setEventId(id);
+        //Alert.alert('Success', `Event created with ID: ${id}`);
+
+        // Immediately fetch details after creation
+        //fetchEventDetails(id);
+    } catch (error) {
+        console.error('Error creating event:', error);
+        return null;
+
+    }
+}
+
+
+// Edit event
+export const editEvent = async (title, location, startDate, endDate, notes, timeZone, eventId) => {
+    console.log("editEvent called with eventId", eventId);
+
+    if (!eventId) {
+        console.error('No event ID provided');
+        return false;
+    }
+
+    try {
+        // Validate dates
+        if (!(startDate instanceof Date) || !(endDate instanceof Date)) {
+            console.error('Invalid date objects provided');
+            return false;
+        }
+
+
+        // Check if event exists before updating
+        const existingEvent = await Calendar.getEventAsync(eventId);
+        if (!existingEvent) {
+            console.error('Event not found with ID:', eventId);
+            return false;
+        }
+        console.log("Existing event found!!!!!!:", existingEvent);
+
+
+        // Map common timezone names to proper identifiers
+        let properTimeZone = timeZone;
+        if (timeZone === "GMT" || timeZone === "UTC") {
+            properTimeZone = "Europe/London"; // GMT equivalent
+        } else if (!timeZone || timeZone === 0) {
+            properTimeZone = existingEvent.timeZone || "America/New_York";
+        }
+
+
+        console.log("Updating event with:", {
+            title,
+            location,
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            notes,
+            timeZone: existingEvent.timeZone
+        });
+
+        // Update the event with all provided parameters
+        await Calendar.updateEventAsync(existingEvent.id, {
+            title: "Hehe HoHo Haha ",
+            // location: location,
+            // startDate: startDate,
+            // endDate: endDate,
+            // notes: notes,
+            // timeZone: existingEvent.timeZone,
+        });
+
+        // Verify 
+        let checkEvent = await Calendar.getEventAsync(existingEvent.id);
+        if (!checkEvent) {
+            console.error("Event deleted after title update");
+            return false;
+        } else {
+            console.log("Event still exists after update:", checkEvent);
+        }
+
+
+        console.log("Event successfully updated");
+        return true;
+
+    } catch (error) {
+        console.error('Error updating event:', error);
+
+        // More detailed error logging
+        if (error.message.includes('not found')) {
+            console.error('Event may have been deleted or moved to a different calendar');
+        } else if (error.message.includes('permission')) {
+            console.error('Calendar permission issue');
+        }
+
+        return false;
+    }
+}
+
+
+// Delete event
+export const deleteEvent = async (eventId) => {
+    if (!eventId || eventId === "null" || eventId === "undefined" || eventId === "") {
+        console.log('No event ID provided for deleteion');
+        return false;
+    }
+    try {
+        await Calendar.deleteEventAsync(eventId);
+        return true;
+    } catch (error) {
+        console.log('Error deleting event:', error);
+        return false;
+    }
+}
+
+
+
+export const storeEventIdInDatabase = async (eventId, taskUniqueIdentifier) => {
+    tc = new taskcal("", eventId, taskUniqueIdentifier)
+    const payload = getpayload_taskcal(tc)
+    try {
+        const response = await axios.post(`${BASE_URL}/AddToCalendar/`, payload, {
+            headers: {
+                "Content-Type": "application/json"
+            }
+        });
+        //console.log("Response from AddToCalendar API", response);
+        if (response.status === 200) {
+            return "Success - Task Added To Calendar";
+        } else {
+            console.error('Error adding task ', response);
+            return "Error - Failed to Add Task";
+        }
+    } catch (error) {
+        console.error('Error saving task as done ', error);
+        return "Error - Failed to Add Task" + (error?.message ? error.message : "");
+    }
+}
+
+
+
+
+// Open in native calendar
+export const openInCalendar = (eventId) => {
+    if (!eventId) {
+        Alert.alert('Error', 'No event to open.');
+        return;
+    }
+    if (Platform.OS === 'ios') {
+        Linking.openURL(`calshow:${eventId}`);
+    } else {
+        Linking.openURL(`content://com.android.calendar/events/${eventId}`);
+    }
+}
 
 export const handleNotification = async (taskItem, to_userid, userid, username, commingFrom) => {
     console.log("handleNotification called with taskItem", taskItem, "to_userid", to_userid, "userid", userid, "username", username, "comingFrom", commingFrom);
@@ -120,6 +390,7 @@ export const sendNotofication = async (userPushToken, fromUserId, fromUserName, 
 
 
 
+
 export const getpayLoadFromMainTask111 = (mainTask) => {
     //console.log("Creating payload from mainTask:", mainTask);
     //console.log(typeof mainTask.startdatetime, mainTask.startdatetime instanceof Date);
@@ -173,6 +444,11 @@ export const getpayLoadFromMainTask = (mainTask) => {
     };
     return payload;
 }
+
+
+
+
+
 
 export const getColor = (value) => {
     switch (value) {
@@ -281,13 +557,13 @@ export const parseToUTCDateByAddingZ = (dateString) => {
 
 
 export const serverDatetoUTCDate = (inDate) => {
-    console.log("serverDatetoUTCDate called with inDate dddddddddddddddddd", inDate);
-    console.log("serverDatetoUTCDate called with inDate dddddddddddddddddd", typeof inDate);
-    console.log("serverDatetoUTCDate called with inDate dddddddddddddddddd", typeof inDate === "string");
-    console.log("serverDatetoUTCDate called with inDate dddddddddddddddddd", inDate instanceof Date);
+    //console.log("serverDatetoUTCDate called with inDate dddddddddddddddddd", inDate);
+    //console.log("serverDatetoUTCDate called with inDate dddddddddddddddddd", typeof inDate);
+    //console.log("serverDatetoUTCDate called with inDate dddddddddddddddddd", typeof inDate === "string");
+    //console.log("serverDatetoUTCDate called with inDate dddddddddddddddddd", inDate instanceof Date);
 
     if (inDate && typeof inDate === "string") {
-        console.log("serverDatetoUTCDate called with string", inDate);
+        //console.log("serverDatetoUTCDate called with string", inDate);
         inDate = parseToUTCDateByAddingZ(inDate);
     }
 
@@ -385,6 +661,45 @@ export const storeUserTokenInMobile_Dict = async (usrTknDict) => {
     }
 };
 
+
+export const deleteFirstTimeinMobile = async () => {
+    try {
+        await SecureStore.deleteItemAsync('firstTime');
+    } catch (error) {
+        console.log("error deleting firstTime", error)
+    }
+};
+
+
+
+export const storeFirstTimeinMobile = async (storeWhatBoolean) => {
+    const toStore = storeWhatBoolean == true ? "Y" : "N"
+    try {
+        await SecureStore.setItemAsync('firstTime', toStore);
+        return toStore
+    } catch (error) {
+        console.log("error storing  token", error)
+        return null
+    }
+};
+
+
+export const retrieveFirstTimeInMobile = async () => {
+    const result = await SecureStore.getItemAsync('firstTime');
+    //console.log("retrieveFirstTimeInMobile result", result);
+    //console.log("retrieveFirstTimeInMobile result", typeof result);
+    //console.log("retrieveFirstTimeInMobile result", JSON.parse(result));
+    //console.log("retrieveFirstTimeInMobile result", JSON.parse(result) == "Y");
+    //console.log("retrieveFirstTimeInMobile result", JSON.parse(result) == "N");
+    if (result) {
+        return result == "Y" ? true : false;
+    } else {
+        return true;
+    }
+};
+
+
+
 export const retrieveUserTokenInMobile = async () => {
     const result = await SecureStore.getItemAsync('token');
     if (result) {
@@ -427,16 +742,16 @@ export const getCurentDateAsStringYYMMDDHHMMSS_Plus_2_Months = () => {
 export const SlidedDateTime = (sourceDate, sourceTime) => {
     //console.log("SlidedDateTime called with sourceDate", sourceDate, "sourceTime", sourceTime);
     try {
-        console.log("inside try block of SlidedDateTime");
+        //console.log("inside try block of SlidedDateTime");
         sourceDate.setUTCHours(sourceTime.getUTCHours());
         sourceDate.setUTCMinutes(sourceTime.getUTCMinutes());
         sourceDate.setUTCSeconds(sourceTime.getUTCSeconds());
         sourceDate.setUTCMilliseconds(sourceTime.getUTCMilliseconds());
-        console.log("SlidSlidedDateTime returning with ", sourceDate);
+        //console.log("SlidSlidedDateTime returning with ", sourceDate);
         return sourceDate;
     } catch (error) {
         console.error("Error in SlidedDateTime:", error);
-        console.log("SlidSlidedDateTime returning with nothing ");
+        //console.log("SlidSlidedDateTime returning with nothing ");
         return null;
     }
 };
@@ -538,3 +853,9 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     }
 });
+
+
+
+
+//console.log("=== COMMON.JS EXPORT DEBUG ===");
+//console.log("removeEventIdFromDatabase exists locally:", typeof removeEventIdFromDatabase);

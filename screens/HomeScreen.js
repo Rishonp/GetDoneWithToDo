@@ -15,7 +15,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Notifications from 'expo-notifications';
 import { usernotitoken } from '../utils/Users';
 import { handleNotification } from '../utils/Common'; '';
-
+import { getEventIdFromDatabase } from '../screens/ModifyTaskScreen'; // Import the function to get event ID
+import { removeEventIdFromDatabase } from '../screens/ModifyTaskScreen'; // Import the function to remove event ID
 
 // below 3 are for swipe left and right functionality 
 import { Dimensions } from 'react-native';
@@ -793,6 +794,19 @@ export default function HomeScreen() {
     } catch (error) {
       console.error('Error deleting task ', error);
     }
+
+    // remove  the Clalander even and also remove from DB if it exists
+    const eventid = await getEventIdFromDatabase(taskItem.uniqueidentifyer);
+    if (eventid !== null && eventid !== undefined && eventid !== "") {
+      try {
+        await Common.deleteEvent(eventid);
+        await removeEventIdFromDatabase(taskItem.uniqueidentifyer, eventid);
+      } catch (error) {
+        console.error("Error cancelling notification: ", error);
+      }
+    }
+
+
   }
 
 

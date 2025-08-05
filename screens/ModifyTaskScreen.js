@@ -16,6 +16,60 @@ import { Keyboard } from 'react-native';
 import { BASE_URL } from '../utils/config';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { taskcal } from '../utils/Users';
+
+
+
+export const removeEventIdFromDatabase = async (taskUniqueIdentifier, eventid) => {
+    tc = new taskcal("", eventid, taskUniqueIdentifier)
+    const payload = Common.getpayload_taskcal(tc)
+    try {
+        const response = await axios.post(`${BASE_URL}/DeleteFromCalendar/`, payload, {
+            headers: {
+                "Content-Type": "application/json"
+            }
+        });
+        //console.log("Response from DeleteFromCalendar API", response);
+        if (response.status === 200) {
+            return "Success - Task Removed From Calendar";
+        } else {
+            console.log('Error removing task ', response);
+            return "Error - Failed to Remove Task";
+        }
+    } catch (error) {
+        console.log('Error saving task as done ', error);
+        return "Error - Failed to Remove Task" + (error?.message ? error.message : "");
+    }
+
+}
+
+
+
+export const getEventIdFromDatabase = async (tuid) => {
+    try {
+        const response = await axios.get(`${BASE_URL}/CalanderEventIDExistsORNot/`, { params: { inputData: tuid } });
+        return response?.data?.eventid || null; // Return eventid if exists, else null
+    } catch (error) {
+        console.log("Error in API CalanderEventIDExistsORNot", error);
+        if (typeof error.response !== 'undefined') {
+            if (error.response.data?.detail) {
+                console.log("Error detail", error.response.data.detail);
+                return null; // Return null on error
+            } else {
+                console.log("Error status", error.response.status);
+                return null; // Return null on error
+            }
+        } else if (error.request) {
+            console.log("No response from Server");
+            return null; // Return null on no response
+        } else {
+            console.log("Error", error.message);
+            return null; // Return null on other errors
+        }
+    }
+
+}
+
 
 const ModifyTaskScreen = ({ route, navigation }) => {
     const { taskStringifyed } = route.params;
@@ -32,6 +86,7 @@ const ModifyTaskScreen = ({ route, navigation }) => {
     //const [theTask, setTheTask] = useState('');
     const [taskack_s, settaskack_s] = useState(false);
     const [donestatus_s, setdonestatus_s] = useState(false);
+    const [addToCalendar, setAddToCalendar] = useState(task_MainTask.addtocal === 1);
 
     // DatePicker visibility
     const [showStartPicker, setShowStartPicker] = useState(false);
@@ -50,8 +105,88 @@ const ModifyTaskScreen = ({ route, navigation }) => {
         { label: 'P2', value: 2 }
     ];
 
+
+
+    const handleAddingToCal = async (task, originalTask) => {
+        console.log("handleAddingToCal called");
+        // Section  1: check if add or modify or delete
+        let mymode = null;
+        let eventid = null;
+        let response;
+        //console.log("CalanderEventIDExistsORNot called iwth task uid : AAAAA", task.uniqueidentifyer);
+        const tuid = task.uniqueidentifyer;
+        eventid = await getEventIdFromDatabase(tuid);
+        // easy condif : if not found in DB and also use has not clicked add to cal then no  further action required
+        if ((eventid == null) && task.addtocal !== 1) {
+            console.log("No event found in DB and user wants to add to calendar");
+            return;
+        }
+        if (eventid == null) {
+            // add mode
+            mymode = "add";
+        } else {
+            // modify mode
+            console.log("Response from CalanderEventIDExistsORNot API", response.data);
+            console.log("Response from CalanderEventIDExistsORNot API eventid", response.data.eventid);
+            mymode = "modify";
+        }
+        if (task.addtocal === 0 && mymode === "modify") {
+            mymode = "delete";
+        }
+        // Section 2 get permissions and calendar ID
+        const perm = await Common.requestPermission();
+        if (!perm) {
+            Alert.alert("Calendar permission Required", "Calendar permission is required to add events to your calendar",);
+            return;
+        }
+        const calID = await Common.getDefaultCalendarId();
+        if (!calID) {
+            Alert.alert("No default calendar found", "Default calendar is required to add events to your calendar",);
+            console.log("No default calendar found");
+            return;
+        }
+        //sECTION 2.1 // Create calendar data
+        const calendarData = {
+            title: task.tasktext,
+            location: "",
+            start: task.startdatetime,
+            end: task.enddatetime,
+            description: task.remarks,
+            priority: task.priority
+        };
+
+        console.log("FINAL MODE Is", mymode);
+        switch (mymode) {
+            case 'add': {
+                new_eventid = await Common.createEvent(calendarData.title, calendarData.location, calendarData.start, calendarData.end, calendarData.description, calendarData.priority);
+                await Common.storeEventIdInDatabase(new_eventid, task.uniqueidentifyer);
+                break;
+            }
+            case 'modify': {
+                await Common.deleteEvent(eventid);
+                await removeEventIdFromDatabase(task.uniqueidentifyer, eventid);
+                new_eventid = await Common.createEvent(calendarData.title, calendarData.location, calendarData.start, calendarData.end, calendarData.description, calendarData.priority);
+                await Common.storeEventIdInDatabase(new_eventid, task.uniqueidentifyer);
+                break;
+            }
+            case 'delete': {
+                await Common.deleteEvent(eventid);
+                await removeEventIdFromDatabase(task.uniqueidentifyer, eventid);
+                break;
+            }
+        }
+    };
+
+
+
     const isModified = (oT, mT) => {
-        return (JSON.stringify(oT) === JSON.stringify(mT));
+        if (JSON.stringify(oT) === JSON.stringify(mT)) {
+            //console.log("No changes detected");
+            return false; // No changes detected
+        } else {
+            //console.log("Changes detected");
+            return true; // Changes detected
+        }
     }
 
 
@@ -283,17 +418,18 @@ const ModifyTaskScreen = ({ route, navigation }) => {
 
 
 
+
     const handleSave = async () => {
-        // check if the user has modified the task
-        if (isModified(original_MainTask, task_MainTask) === true) {
+        // Check if the user has modified the task
+        //console.log("Original Task:", original_MainTask.tasktext);
+        //console.log("Modified Task:", task_MainTask.tasktext);
+        if (isModified(original_MainTask, task_MainTask) === false) {
             Alert.alert("No changes made", "You have not made any changes to the task.");
-            return;
+            return; // Return early if no changes
         }
 
-
-        //currentUsrToken
-
-        const payload = Common.getpayLoadFromMainTask111(task_MainTask)
+        // Create payload for the API call
+        const payload = Common.getpayLoadFromMainTask111(task_MainTask);
         try {
             const response = await axios.post(`${BASE_URL}/UpdateTask/`, payload, {
                 headers: {
@@ -301,29 +437,32 @@ const ModifyTaskScreen = ({ route, navigation }) => {
                 }
             });
             if (response.status === 200) {
-                // notify if this task has addedBy == not empty
+                // Call handleAddingToCal ONLY if the API call succeeds
+
+                await handleAddingToCal(task_MainTask, original_MainTask);
+
+                // Notification logic
                 if (task_MainTask.addedby !== '') {
                     Alert.alert("Task Updated", "Task has been updated successfully.");
                 }
 
-                let send_to_userId = "" // if rishon logged in then send to Mom( added by ) , if mom logged in then send to Rishon ( original userID ) 
-                console.log("Logged in ", currentUsrToken.user.userid);
-                console.log("main task", task_MainTask);
-
+                let send_to_userId = "";
+                //console.log("Logged in ", currentUsrToken.user.userid);
+                //console.log("main task", task_MainTask);
 
                 if (currentUsrToken.user.userid === task_MainTask.userid) {
-                    // notify the user that the task has been updated
                     send_to_userId = task_MainTask.addedby_userid;
                 } else if (currentUsrToken.user.userid === task_MainTask.addedby_userid) {
                     send_to_userId = task_MainTask.userid;
                 }
-                console.log("send_to_userId Final ", send_to_userId);
-                if (send_to_userId !== "") { // means send notification
+
+                //console.log("send_to_userId Final ", send_to_userId);
+                if (send_to_userId !== "") {
                     Common.handleNotification(task_MainTask, send_to_userId, task_MainTask.userid, currentUsrToken.user.username, 'ModifyTaskScreen');
                 }
+
                 navigation.goBack();
             }
-
         } catch (error) {
             if (typeof error.response !== 'undefined') {
                 if (error.response.data?.detail) {
@@ -336,29 +475,23 @@ const ModifyTaskScreen = ({ route, navigation }) => {
             } else {
                 setMessage("Error - " + error.message);
             }
+
+            setMessage("Error - " + error.message);
         }
-        // Save logic here (API call or state update)
-        // After saving, go back
-
-        //console.log("Saving task:", task_MainTask);
-        //navigation.navigate('HomeScreen');
-
     };
+    // Save logic here (API call or state update)
+    // After saving, go back
+
+    //console.log("Saving task:", task_MainTask);
+    //navigation.navigate('HomeScreen');
+
+
 
     const handleCancel = () => {
         //navigation.navigate('HomeScreen')
         navigation.goBack()
     };
 
-
-    // const handleSave = async () => {
-    //    try{
-
-
-
-
-
-    //    };
 
     const handleTaskAck = (value) => {
         settaskack_s(value);
@@ -403,15 +536,18 @@ const ModifyTaskScreen = ({ route, navigation }) => {
     }
 
     useEffect(() => {
+        // console.log("=== DEBUGGING COMMON FUNCTIONS ===");
+        //console.log("Available Common functions:", Object.keys(Common));
+        //console.log("Looking for removeEventIdFromDatabase:", typeof Common.removeEventIdFromDatabase);
+        //console.log("=== END DEBUG ===");
+
         onFormLoadFunction()
     }, [route.params?.taskStringifyed]); /// Re-run when taskStringifyed changes, useful when i keep going back and fotth between home scree nand modify task screen
 
 
 
     return (
-
         <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight || 0 }}>
-
             <LinearGradient
                 colors={[Common.getColor("backGradientEnd"), Common.getColor("backGradientStart")]}
                 start={{ x: 0, y: 0 }}
@@ -419,21 +555,28 @@ const ModifyTaskScreen = ({ route, navigation }) => {
                 style={styles.container}
             >
                 <View style={styles.container}>
-                    <View style={styles.row}>
+                    {/* Error Message */}
+                    {message_s !== '' && (
+                        <Text style={[styles.message, styles.messageSuccess]}>{message_s}</Text>
+                    )}
+
+                    {/* Task Acknowledged Row */}
+                    <View style={[styles.row, { marginBottom: 20 }]}>
                         <Text style={styles.largeText}>Task Acknowledged</Text>
                         <Switch
                             style={styles.switch}
                             value={taskack_s}
                             onValueChange={(value) => handleTaskAck(value)}
                             trackColor={{
-                                false: '#FDECEA', // Bright red when off
-                                true: Common.getColor("green")   // Material green when on
+                                false: '#FDECEA',
+                                true: Common.getColor("green")
                             }}
-                            thumbColor={taskack_s ? Common.getColor("darkgreen") : 'grey'} // White thumb always
-                            ios_backgroundColor="#FDECEA" // iOS background when off
+                            thumbColor={taskack_s ? Common.getColor("darkgreen") : 'grey'}
+                            ios_backgroundColor="#FDECEA"
                         />
-
                     </View>
+
+                    {/* Task Text Input */}
                     <TextInput
                         style={styles.inputMainTaskText}
                         value={task_MainTask.tasktext}
@@ -444,116 +587,115 @@ const ModifyTaskScreen = ({ route, navigation }) => {
                         scrollEnabled={true}
                     />
 
-
-                    {/* <View style={styles.pickerWrapper}>
-                <Picker
-                    selectedValue={task_MainTask.priority}
-                    style={styles.picker}
-                    onValueChange={(itemValue) => setTask_MainTask({ ...task_MainTask, priority: itemValue })}>
-                    <Picker.Item label="P0" value={0} />
-                    <Picker.Item label="P1" value={1} />
-                    <Picker.Item label="P2" value={2} />
-                </Picker>
-            </View> */}
-
-
-
-
-                    <View style={styles.row}>
-                        <Text style={styles.largeText}>Priority          </Text>
+                    {/* Priority Row */}
+                    <View style={[styles.row, { marginBottom: 20 }]}>
+                        <Text style={styles.largeText}>Priority</Text>
                         <View style={styles.verticallyCentered}>
                             <View style={[
                                 styles.pickerWrapper,
                                 { backgroundColor: task_MainTask.priority === 0 ? '#FDECEA' : '#E8F5E8' }
                             ]}>
                                 {renderPriorityPicker()}
-                                {/* <Picker
-                                    selectedValue={task_MainTask.priority}
-                                    style={styles.picker}
-                                    onValueChange={(itemValue) => setTask_MainTask({ ...task_MainTask, priority: itemValue })}>
-                                    <Picker.Item label="P0" value={0} />
-                                    <Picker.Item label="P1" value={1} />
-                                    <Picker.Item label="P2" value={2} />
-                                </Picker> */}
                             </View>
-
                         </View>
-
                     </View>
 
-
-
-
-
-                    <View style={styles.row}>
+                    {/* Done Status Row */}
+                    <View style={[styles.row, { marginBottom: 20 }]}>
                         <Text style={styles.largeText}>Done?</Text>
-
-
                         <Switch
                             style={styles.switch}
                             value={donestatus_s}
                             onValueChange={(value) => handleDoneStatus(value)}
                             trackColor={{
-                                false: '#FDECEA', // Bright red when off
-                                true: Common.getColor("green")   // Material green when on
+                                false: '#FDECEA',
+                                true: Common.getColor("green")
                             }}
-                            thumbColor={donestatus_s ? Common.getColor("darkgreen") : 'grey'} // White thumb always
-                            ios_backgroundColor="#FDECEA" // iOS background when off
+                            thumbColor={donestatus_s ? Common.getColor("darkgreen") : 'grey'}
+                            ios_backgroundColor="#FDECEA"
                         />
-
                     </View>
+
+                    {/* Add to Calendar Row */}
+                    <View style={[styles.row, { marginBottom: 20 }]}>
+                        <Text style={styles.largeText}>Add to Calendar?</Text>
+                        <Switch
+                            style={styles.switch}
+                            value={addToCalendar}
+                            onValueChange={(value) => {
+                                setAddToCalendar(value);
+                                setTask_MainTask({ ...task_MainTask, addtocal: value ? 1 : 0 });
+                            }}
+                            trackColor={{
+                                false: '#FDECEA',
+                                true: Common.getColor("green")
+                            }}
+                            thumbColor={addToCalendar ? Common.getColor("darkgreen") : 'grey'}
+                            ios_backgroundColor="#FDECEA"
+                        />
+                    </View>
+
+                    {/* Start Date Row */}
                     <View style={styles.row}>
                         <Text style={styles.largeText}>Start Date</Text>
-                        <TouchableOpacity style={styles.buttonStart} onPress={() => showStartDatePicker()} onLongPress={() => showStartTimePicker()}>
+                        <TouchableOpacity
+                            style={styles.buttonStart}
+                            onPress={() => showStartDatePicker()}
+                            onLongPress={() => showStartTimePicker()}
+                        >
                             <Icon name="today" size={20} color="black" style={{ marginRight: 6 }} />
                             <Text style={styles.buttonTextBlack}>{task_MainTask.startdatetime?.toLocaleString()}</Text>
                         </TouchableOpacity>
-
-                        <DateTimePickerModal
-                            isVisible={showStartPicker}
-                            mode="date"
-                            date={task_MainTask.startdatetime}
-                            onConfirm={handleConfirmStartPicker}
-                            onCancel={hideStartDatePicker}
-                        />
-
-                        <DateTimePickerModal
-                            isVisible={showStartPicker_time}
-                            mode="time"
-                            date={task_MainTask.startdatetime}
-                            onConfirm={handleConfirmStartPicker_time}
-                            onCancel={hideStartTimePicker}
-                        />
-
-
                     </View>
 
+                    {/* Start Date Pickers */}
+                    <DateTimePickerModal
+                        isVisible={showStartPicker}
+                        mode="date"
+                        date={task_MainTask.startdatetime}
+                        onConfirm={handleConfirmStartPicker}
+                        onCancel={hideStartDatePicker}
+                    />
 
+                    <DateTimePickerModal
+                        isVisible={showStartPicker_time}
+                        mode="time"
+                        date={task_MainTask.startdatetime}
+                        onConfirm={handleConfirmStartPicker_time}
+                        onCancel={hideStartTimePicker}
+                    />
+
+                    {/* End Date Row */}
                     <View style={styles.row}>
                         <Text style={styles.largeText}>End Date</Text>
-                        <TouchableOpacity style={styles.buttonEnd} onPress={() => showEndDatePicker()} onLongPress={() => showEndTimePicker()}>
+                        <TouchableOpacity
+                            style={styles.buttonEnd}
+                            onPress={() => showEndDatePicker()}
+                            onLongPress={() => showEndTimePicker()}
+                        >
                             <Icon name="event" size={20} color="black" style={{ marginRight: 6 }} />
                             <Text style={styles.buttonTextBlack}>{task_MainTask.enddatetime?.toLocaleString()}</Text>
                         </TouchableOpacity>
-
-                        <DateTimePickerModal
-                            isVisible={showEndPicker}
-                            mode="date"
-                            date={task_MainTask.enddatetime}
-                            onConfirm={handleConfirmEndPicker}
-                            onCancel={hideEndDatePicker}
-                        />
-
-                        <DateTimePickerModal
-                            isVisible={showEndPicker_time}
-                            mode="time"
-                            date={task_MainTask.enddatetime}
-                            onConfirm={handleConfirmEndPicker_time}
-                            onCancel={hideEndTimePicker}
-                        />
-
                     </View>
 
+                    {/* End Date Pickers */}
+                    <DateTimePickerModal
+                        isVisible={showEndPicker}
+                        mode="date"
+                        date={task_MainTask.enddatetime}
+                        onConfirm={handleConfirmEndPicker}
+                        onCancel={hideEndDatePicker}
+                    />
+
+                    <DateTimePickerModal
+                        isVisible={showEndPicker_time}
+                        mode="time"
+                        date={task_MainTask.enddatetime}
+                        onConfirm={handleConfirmEndPicker_time}
+                        onCancel={hideEndTimePicker}
+                    />
+
+                    {/* Remarks Input */}
                     <TextInput
                         style={styles.input}
                         value={task_MainTask.remarks}
@@ -561,37 +703,24 @@ const ModifyTaskScreen = ({ route, navigation }) => {
                         placeholder="Task Remarks"
                     />
 
+                    {/* Action Buttons Row */}
                     <View style={styles.row}>
-
                         <TouchableOpacity style={styles.editButton} onPress={() => handleSave()}>
                             <Icon name="edit" size={20} color="#fff" style={{ marginRight: 6 }} />
-                            <Text style={styles.buttonText}>  Save  </Text>
+                            <Text style={styles.buttonText}>Save</Text>
                         </TouchableOpacity>
+
                         <TouchableOpacity style={styles.editButton} onPress={() => handleCancel()}>
                             <Icon name="cancel" size={20} color="#fff" style={{ marginRight: 6 }} />
-                            <Text style={styles.buttonText}>  Cancel  </Text>
+                            <Text style={styles.buttonText}>Cancel</Text>
                         </TouchableOpacity>
-                        {message_s !== '' && (
-                            <Text style={[styles.message, styles.messageSuccess]}>{message_s}</Text>
-                        )}
-
                     </View>
 
                 </View>
-
-
-
             </LinearGradient>
-
-
         </View>
-
     );
-
-
-
-}
-
+};
 export default ModifyTaskScreen;
 const styles = StyleSheet.create({
 
@@ -798,6 +927,7 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-start',
         flexDirection: 'row',
         alignItems: 'center',
+        minHeight: 50,
 
     },
     button: {

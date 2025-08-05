@@ -28,8 +28,8 @@ const LoginScreen = ({ route, navigation }) => {
     const [message_s, setMessage] = useState('');
 
 
-
     const handleTheLogin = () => {
+        console.log("handleTheLogin called 1");
         const user = new Users("", username_s, "", userpass_hashed_s, new Date(), 1)
         const tkn = new Token("", "bearer", new Date(), "", username_s)
 
@@ -38,10 +38,13 @@ const LoginScreen = ({ route, navigation }) => {
         //console.log("sending1111111")
         //console.log("login dict nmnmnmmnmnmnmn", usertoken_dict)
         //console.log("BASE_URL", BASE_URL);
+        console.log("handleTheLogin called 2");
         axios
             .post(`${BASE_URL}/LogInUserNew1/`, { params: usertoken_dict })
             .then((response) => {
                 setMessage("login successful..refreshing token")
+                console.log("handleTheLogin called 2.5");
+
                 //console.log("response!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                 //console.log(response.data)
                 Common.storeUserTokenInMobile_Dict(response.data).then((responseDict) => {
@@ -60,14 +63,18 @@ const LoginScreen = ({ route, navigation }) => {
                         setCurrentUsrToken(usrTkn)
                         console.log("good till here4 from handlelogin")
                         console.log("setCurrentUsrToken called in login with    ", usrTkn)
+                        console.log("handleTheLogin called 3");
+
                     }
                 }).catch((errorStoringSecureStore) => {
+                    console.log("handleTheLogin called ERRORRRRRRR");
                     console.log("errorStoringSecureStore", errorStoringSecureStore)
                     console.log("responseDict", responseDict)
                     setMessage(errorStoringSecureStore)
                 })
             })
             .catch((error) => {
+                console.log("handleTheLogin called ERERERERER");
                 console.log("error1111111", error)
                 if (typeof error.response !== 'undefined') {
                     if (error.response.data?.detail) {

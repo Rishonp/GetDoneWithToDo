@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from "react";
-import { View, TextInput, Button, Text, StyleSheet, Alert, TouchableOpacity, Switch, FlatList, StatusBar, Platform, Modal } from 'react-native';
+import { View, TextInput, Button, Text, StyleSheet, Alert, TouchableOpacity, Switch, FlatList, StatusBar, Platform, Modal, ScrollView } from 'react-native';
 import axios from 'axios';
 import Users from "../utils/Users";
 import Token, { UserNToken } from "../utils/Token";
@@ -7,6 +7,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as Common from "../utils/Common"
 import { AuthContext } from '../context/AuthContext';
 import { MainTasks } from '../utils/Users';
+import { taskcal } from '../utils/Users';
 import Toast from 'react-native-toast-message';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
@@ -16,6 +17,10 @@ import { Keyboard } from 'react-native';
 import { BASE_URL } from '../utils/config';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
+
+import * as Calendar from 'expo-calendar';
+import * as Linking from 'expo-linking';
+//import { ScrollView } from "react-native-gesture-handler";
 
 
 const AddTask = ({ route, navigation }) => {
@@ -39,6 +44,7 @@ const AddTask = ({ route, navigation }) => {
         taskack: 0,
         taskack_datetime: new Date(),
     });
+
     const [relationList, setRelationList] = useState([]);
     const [showStartPicker, setShowStartPicker] = useState(false);
     const [showEndPicker, setShowEndPicker] = useState(false);
@@ -50,6 +56,9 @@ const AddTask = ({ route, navigation }) => {
     const [selectedId_relation, setSelectedId_relation] = useState(null); // this is for the selected item in FlatList of relationships - this is the relation ID
 
     const [showPriorityPicker, setShowPriorityPicker] = useState(false);
+
+    const [is_addtocalSwitchEnabled, setIs_addtocalSwitchEnabled] = useState(false); // you can only add to cal if the task si for you and not for others
+
 
     const priorityOptions = [
         { label: 'P0', value: 0 },
@@ -129,19 +138,93 @@ const AddTask = ({ route, navigation }) => {
     };
 
 
+    const handleAddingToCal = async (task) => {
+        // Step 0 : Check if the task should be added to the calendar
+        let calID;
+        if (task.addtocal !== 1) {
+            //console.log("Task not added to calendar as addtocal is not 1");
+            return;
+        }
+        // Step 1. Check if user has granted calendar permissions
+        const perm = await Common.requestPermission();
+        if (!perm) {
+            console.log("Calendar permission not granted");
+            return;
+        }
+        // Step 1.5: Get the calendar ID
+        calID = await Common.getDefaultCalendarId();
+        if (!calID) {
+            console.log("No default calendar found");
+            return;
+        }
+        // Step 2   Add to calendar
+        const calendarData = {
+            title: task.tasktext,
+            start: task.startdatetime,
+            end: task.enddatetime,
+            description: task.description,
+            location: "",
+            priority: "",
+        };
+
+        const eventId = await Common.createEvent(
+            calendarData.title,
+            calendarData.location,
+            calendarData.start,
+            calendarData.end,
+            calendarData.description,
+            calendarData.priority
+        );
+        if (!eventId) {
+            console.log("Failed to create calendar event");
+            return;
+        }
+        // Step 3  Store the event ID in database
+
+        tc = new taskcal(
+            "",
+            eventId,
+            task.uniqueidentifyer,
+        )
+
+        response = await Common.storeEventIdInDatabase(eventId, task.uniqueidentifyer);
+        if (!response || response.includes("Error")) {
+            console.error('Error storing event ID in database', response);
+            Toast.show({
+                type: 'error',
+                text1: 'Failed to Store Event ID in DB',
+                position: 'top',
+            });
+        } else {
+            Toast.show({
+                type: 'success',
+                text1: 'Task Added To Calendar Successfully',
+                position: 'top',
+            });
+        }
+        //console.log("Available Common functions:", Object.keys(Common));
+        //console.log("Looking for getpayload_taskcal:", typeof Common.getpayload_taskcal);
+
+    }
+
+
+
+
+
+
+
+
+
     const handleSave = async () => {
         if (theTask.tasktext.trim() === '') {
             setMessage("Task description required");
             return;
         }
-
-
-        console.log("Saving task with start date", theTask.startdatetime);
         if (selectedId == null || selectedId === undefined || selectedId === '') {
             // this means user has not selected any relation from the list
             // no need to do anything as task will be added for self
             // hence addedby_userid will be empty
-            console.log("selectedId is null or undefined or empty, hence adding task for self");
+            //console.log("selectedId is null or undefined or empty, hence adding task for self");
             theTask.addedby_userid = ""
             theTask.addedby_datetime = new Date();
         } else {
@@ -151,33 +234,25 @@ const AddTask = ({ route, navigation }) => {
             theTask.addedby_datetime = new Date();
         }
         theTask.donestatus_datetime = new Date(); // just store some date time
-
-
-        //console.log("start date time before conversion", theTask.startdatetime);
-        //console.log("start date time with ToLocale conversion", theTask.startdatetime.toLocaleString());
         const payload = Common.getpayLoadFromMainTask111(theTask)
         //console.log("Sending data to server", payload);
         try {
-            const response = await axios.post(`${BASE_URL}/AddTask/`, payload, {
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            });
-            //console.log("response is ", response);
+            const response = await axios.post(`${BASE_URL}/AddTask/`, payload, { headers: { "Content-Type": "application/json" } });
             if (response.status === 200) {
-                Toast.show({
-                    type: 'success',
-                    text1: 'Task Added Successfully',
-                    position: 'top',
-                });
+                // this is extyra step to get the uniq identifyed of the newly aded task from API
+                theTask.uniqueidentifyer = response.data.uniqueidentifyer;
+                // if  you are adding task to other then add to cal has to be zero as of now and functionality is not enabled 
+                // else this will add a calander task to Priya , where else the task itself IS FOR Rishon
+                if (theTask.addedby_userid == "") {
+                    await handleAddingToCal(theTask);
+                }
+
+                Toast.show({ type: 'success', text1: 'Task Added Successfully', position: 'top', });
                 navigation.navigate('HomeScreen');
+
             } else {
                 console.error('Error adding task ', response);
-                Toast.show({
-                    type: 'error',
-                    text1: 'Failed to Add Task',
-                    position: 'top',
-                });
+                Toast.show({ type: 'error', text1: 'Failed to Add Task', position: 'top', });
             }
         } catch (error) {
             console.error('Error saving task as done ', error);
@@ -364,12 +439,22 @@ const AddTask = ({ route, navigation }) => {
     //console.log("New date .....", theTask.startdatetime);
 
     const selectDeselectItem = (item) => {
+
         if (selectedId === item.Userrelation.uniqueidentifyer) {
             setSelectedId(null);
             setSelectedId_relation(null);
+            // add to cal functionality is only avaialble if oyu are adding task  for yourself .
+            setTheTask({ ...theTask, addtocal: theTask.addtocal });
+            setIs_addtocalSwitchEnabled(false);
+            console.log("selectDeselectItem called , switch being enabled ", is_addtocalSwitchEnabled);
         } else {
             setSelectedId(item.Userrelation.uniqueidentifyer);
             setSelectedId_relation(item.Userrelation.relationuserid);
+            // add to cal functionality is only avaialble if oyu are adding task  for yourself .
+            setTheTask({ ...theTask, addtocal: 0 });
+            setIs_addtocalSwitchEnabled(true);
+            console.log("selectDeselectItem called , switch being disabled ", is_addtocalSwitchEnabled);
+
         }
     }
 
@@ -399,46 +484,69 @@ const AddTask = ({ route, navigation }) => {
             >
 
                 <View style={styles.container}>
-                    <View style={styles.middleSection}>
-                        <View style={styles.container}>
-                            <TextInput
-                                style={styles.input}
-                                value={theTask.tasktext}
-                                onChangeText={(text) => setTheTask({ ...theTask, tasktext: text })}
-                                placeholder="add a new Task..."
-                            />
-
-                            <View style={[styles.row, { paddingRight: 10 }]}>
-                                <Text style={styles.largeText}>Done?</Text>
-
-                                {/* <Switch style={styles.switch} value={theTask.donestatus == 1 ? true : false} onValueChange={(value) => setTheTask({ ...theTask, donestatus: value == true ? 1 : 0 })} /> */}
-
-                                <Switch
-                                    style={styles.switch}
-                                    value={theTask.donestatus == 1 ? true : false}
-                                    onValueChange={(value) => setTheTask({ ...theTask, donestatus: value == true ? 1 : 0 })}
-                                    trackColor={{
-                                        false: Common.getColor("oldred"), // Bright red when off
-                                        true: Common.getColor("green")   // Material green when on
-                                    }}
-                                    thumbColor={theTask.donestatus == 1 ? Common.getColor("darkgreen") : 'grey'} // White thumb always
-                                    ios_backgroundColor={Common.getColor("oldred")} // iOS background when off
+                    <ScrollView
+                        style={styles.scrollContainer}
+                        contentContainerStyle={styles.scrollContent}
+                        showsVerticalScrollIndicator={true}
+                        keyboardShouldPersistTaps="handled"
+                    >
+                        <View style={styles.middleSection}>
+                            <View style={styles.container}>
+                                <TextInput
+                                    style={styles.input}
+                                    value={theTask.tasktext}
+                                    onChangeText={(text) => setTheTask({ ...theTask, tasktext: text })}
+                                    placeholder="add a new Task..."
                                 />
 
+                                <View style={[styles.row, { paddingRight: 10, marginBottom: 20 }]}>
+                                    <Text style={styles.largeText}>Done?</Text>
+
+                                    {/* <Switch style={styles.switch} value={theTask.donestatus == 1 ? true : false} onValueChange={(value) => setTheTask({ ...theTask, donestatus: value == true ? 1 : 0 })} /> */}
+
+                                    <Switch
+                                        style={styles.switch}
+                                        value={theTask.donestatus == 1 ? true : false}
+                                        onValueChange={(value) => setTheTask({ ...theTask, donestatus: value == true ? 1 : 0 })}
+                                        trackColor={{
+                                            false: Common.getColor("oldred"), // Bright red when off
+                                            true: Common.getColor("green")   // Material green when on
+                                        }}
+                                        thumbColor={theTask.donestatus == 1 ? Common.getColor("darkgreen") : 'grey'} // White thumb always
+                                        ios_backgroundColor={Common.getColor("oldred")} // iOS background when off
+                                    />
+                                </View>
 
 
-                            </View>
+                                <View style={[styles.row, { paddingRight: 10, marginBottom: 20 }]}>
+                                    <Text style={styles.largeText}>Calendar?</Text>
 
-                            <View style={styles.row}>
-                                <Text style={styles.largeText}>Priority          </Text>
-                                <View style={styles.verticallyCentered}>
-                                    <View style={[
-                                        styles.pickerWrapper,
-                                        { backgroundColor: theTask.priority === 0 ? '#FDECEA' : '#E8F5E8' }
-                                    ]}>
-                                        {renderPriorityPicker()}
+                                    {/* <Switch style={styles.switch} value={theTask.donestatus == 1 ? true : false} onValueChange={(value) => setTheTask({ ...theTask, donestatus: value == true ? 1 : 0 })} /> */}
 
-                                        {/* <Picker
+                                    <Switch
+                                        style={styles.switch}
+                                        value={theTask.addtocal == 1 ? true : false}
+                                        onValueChange={(value) => setTheTask({ ...theTask, addtocal: value == true ? 1 : 0 })}
+                                        disabled={is_addtocalSwitchEnabled} // Disable switch if not adding for self
+                                        trackColor={{
+                                            false: Common.getColor("oldred"), // Bright red when off
+                                            true: Common.getColor("green")   // Material green when on
+                                        }}
+                                        thumbColor={theTask.addtocal == 1 ? Common.getColor("darkgreen") : 'grey'} // White thumb always
+                                        ios_backgroundColor={Common.getColor("oldred")} // iOS background when off
+                                    />
+                                </View>
+
+                                <View style={styles.row}>
+                                    <Text style={styles.largeText}>Priority</Text>
+                                    <View style={styles.verticallyCentered}>
+                                        <View style={[
+                                            styles.pickerWrapper,
+                                            { backgroundColor: theTask.priority === 0 ? '#FDECEA' : '#E8F5E8' }
+                                        ]}>
+                                            {renderPriorityPicker()}
+
+                                            {/* <Picker
                                             selectedValue={theTask.priority}
                                             style={styles.picker}
                                             onValueChange={(itemValue) => setTheTask({ ...theTask, priority: itemValue })}>
@@ -446,83 +554,91 @@ const AddTask = ({ route, navigation }) => {
                                             <Picker.Item label="P1" value={1} />
                                             <Picker.Item label="P2" value={2} />
                                         </Picker> */}
+                                        </View>
+
                                     </View>
 
                                 </View>
+                                <View style={styles.row}>
+                                    <Text style={styles.largeText}>Start</Text>
+                                    <TouchableOpacity style={styles.buttonStart} onPress={() => showStartDatePicker()} onLongPress={() => showStartTimePicker()} >
+                                        <Icon name="today" size={20} color="black" style={{ marginRight: 6 }} />
+                                        <Text style={styles.buttonTextBlack}>{Common.formatToLocalDateString_inputIsDataObj(theTask.startdatetime)}</Text>
+                                    </TouchableOpacity>
+
+                                    <DateTimePickerModal
+                                        isVisible={showStartPicker}
+                                        mode="date"
+                                        date={theTask.startdatetime}
+                                        onConfirm={handleConfirmStartPicker}
+                                        onCancel={hideStartDatePicker}
+                                        display={Common.getDisplayMode("date")}
+                                    />
+                                    <DateTimePickerModal
+                                        isVisible={showStartPicker_time}
+                                        mode="time"
+                                        date={theTask.startdatetime}
+                                        onConfirm={handleConfirmStartPicker_time}
+                                        onCancel={hideStartTimePicker}
+                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+
+                                    />
+
+                                </View>
+
+                                <View style={styles.row}>
+                                    <Text style={styles.largeText}>Finish</Text>
+                                    <TouchableOpacity style={styles.buttonEnd} onPress={() => showEndDatePicker()} onLongPress={() => showEndTimePicker()}>
+                                        <Icon name="event" size={20} color="black" style={{ marginRight: 6 }} />
+                                        <Text style={styles.buttonTextBlack}>{Common.formatToLocalDateString_inputIsDataObj(theTask.enddatetime)}</Text>
+                                    </TouchableOpacity>
+
+                                    <DateTimePickerModal
+                                        isVisible={showEndPicker}
+                                        mode="date"
+                                        date={theTask.enddatetime}
+                                        onConfirm={handleConfirmEndPicker}
+                                        onCancel={hideEndDatePicker}
+                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+
+                                    />
+
+                                    <DateTimePickerModal
+                                        isVisible={showEndPicker_time}
+                                        mode="time"
+                                        date={theTask.enddatetime}
+                                        onConfirm={handleConfirmEndPicker_time}
+                                        onCancel={hideEndTimePicker}
+                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+
+                                    />
+
+                                </View>
+                                <TextInput
+                                    style={styles.input}
+                                    value={theTask.remarks}
+                                    onChangeText={(text) => setTheTask({ ...theTask, remarks: text })}
+                                    placeholder="additional remarks..."
+                                />
+
+                                <View style={styles.row}>
+                                    <TouchableOpacity style={styles.editButton} onPress={() => handleSave()}>
+                                        <Icon name="add" size={20} color="#fff" style={{ marginRight: 6 }} />
+                                        <Text style={styles.buttonText}>  Add  </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity style={styles.editButton} onPress={() => handleCancel()}>
+                                        <Icon name="cancel" size={20} color="#fff" style={{ marginRight: 6 }} />
+                                        <Text style={styles.buttonText}>  Cancel  </Text>
+                                    </TouchableOpacity>
+                                </View>
 
                             </View>
-                            <View style={styles.row}>
-                                <Text style={styles.largeText}>Start</Text>
-                                <TouchableOpacity style={styles.buttonStart} onPress={() => showStartDatePicker()} onLongPress={() => showStartTimePicker()} >
-                                    <Icon name="today" size={20} color="black" style={{ marginRight: 6 }} />
-                                    <Text style={styles.buttonTextBlack}>{Common.formatToLocalDateString_inputIsDataObj(theTask.startdatetime)}</Text>
-                                </TouchableOpacity>
-
-                                <DateTimePickerModal
-                                    isVisible={showStartPicker}
-                                    mode="date"
-                                    date={theTask.startdatetime}
-                                    onConfirm={handleConfirmStartPicker}
-                                    onCancel={hideStartDatePicker}
-                                />
-                                <DateTimePickerModal
-                                    isVisible={showStartPicker_time}
-                                    mode="time"
-                                    date={theTask.startdatetime}
-                                    onConfirm={handleConfirmStartPicker_time}
-                                    onCancel={hideStartTimePicker}
-                                />
-
-                            </View>
-
-                            <View style={styles.row}>
-                                <Text style={styles.largeText}>Finish</Text>
-                                <TouchableOpacity style={styles.buttonEnd} onPress={() => showEndDatePicker()} onLongPress={() => showEndTimePicker()}>
-                                    <Icon name="event" size={20} color="black" style={{ marginRight: 6 }} />
-                                    <Text style={styles.buttonTextBlack}>{Common.formatToLocalDateString_inputIsDataObj(theTask.enddatetime)}</Text>
-                                </TouchableOpacity>
-
-                                <DateTimePickerModal
-                                    isVisible={showEndPicker}
-                                    mode="date"
-                                    date={theTask.enddatetime}
-                                    onConfirm={handleConfirmEndPicker}
-                                    onCancel={hideEndDatePicker}
-                                />
-
-                                <DateTimePickerModal
-                                    isVisible={showEndPicker_time}
-                                    mode="time"
-                                    date={theTask.enddatetime}
-                                    onConfirm={handleConfirmEndPicker_time}
-                                    onCancel={hideEndTimePicker}
-                                />
-
-                            </View>
-                            <TextInput
-                                style={styles.input}
-                                value={theTask.remarks}
-                                onChangeText={(text) => setTheTask({ ...theTask, remarks: text })}
-                                placeholder="additional remarks..."
-                            />
-
-                            <View style={styles.row}>
-                                <TouchableOpacity style={styles.editButton} onPress={() => handleSave()}>
-                                    <Icon name="add" size={20} color="#fff" style={{ marginRight: 6 }} />
-                                    <Text style={styles.buttonText}>  Add  </Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={styles.editButton} onPress={() => handleCancel()}>
-                                    <Icon name="cancel" size={20} color="#fff" style={{ marginRight: 6 }} />
-                                    <Text style={styles.buttonText}>  Cancel  </Text>
-                                </TouchableOpacity>
-                            </View>
-
+                            {message_s !== '' && (
+                                <Text style={[styles.message, styles.messageSuccess]}>{message_s}</Text>
+                            )}
                         </View>
-                        {message_s !== '' && (
-                            <Text style={[styles.message, styles.messageSuccess]}>{message_s}</Text>
-                        )}
+                    </ScrollView>
 
-                    </View>
                     <View style={styles.bottomSection}>
                         <View style={styles.containerFlatList}>
 
@@ -787,6 +903,7 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-start',
         flexDirection: 'row',
         alignItems: 'center',
+        minHeight: 50,
 
     },
 

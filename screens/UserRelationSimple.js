@@ -259,6 +259,7 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-start',
         flexDirection: 'row',
         alignItems: 'center',
+        minHeight: 50,
 
     },
     buttonText: {

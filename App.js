@@ -1,5 +1,5 @@
 import React, { useEffect, useState, createContext, useContext, act, useRef } from 'react';
-import { View, SafeAreaView } from 'react-native';
+import { View, SafeAreaView, TouchableOpacity } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -8,6 +8,8 @@ import { StyleSheet, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import axios from 'axios';
 import { BASE_URL } from './utils/config'; // Adjust the import path as necessary
+import { LinearGradient } from 'expo-linear-gradient';
+
 
 import SplashScreen from './screens/SplashScreen';
 import LoginScreen from './screens/LoginScreen';
@@ -31,13 +33,12 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 // Add this import at the top with your other imports
 import Constants from 'expo-constants';
 import { MaterialIcons } from "@expo/vector-icons";
+import FirstTime from './screens/FirstTime';
 
 
 import * as Device from 'expo-device'; // Add this line
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native'; // Add this import if not already present
-
-
 
 
 
@@ -165,25 +166,36 @@ const HomeTabs = () => {
 
 
 const AppNav = () => {
-  const { token, loading, setToken, setCurrentUsrToken } = useContext(AuthContext);
+  const { token, loading, setToken, setCurrentUsrToken, isFirstTime } = useContext(AuthContext);
+
+  //const [isFirstTime, setIsFirstTime] = useState(null); // Change to null initially
+  const [firstTimeChecked, setFirstTimeChecked] = useState(false);
+
+  useEffect(() => {
+    const initializeApp = async () => {
+      /////////////await Common.storeFirstTimeInMobile(false);  // temp code to set first time to false
+    };
+
+    initializeApp();
+
+  }, [token]);
 
 
+  // Show loading until both auth and first-time check are complete
   if (loading) return <SplashScreen />;
-  // console.log("Inside App Nav with token ", token);
-  // console.log(typeof token);
-  // console.log(token === null);
-  // console.log(token !== null && token.length !== 0)
-  // console.log("Just before the return statement !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-  return (
+  //console.log("AppNav is rendering with firstTime:", isFirstTime, " and token:", token);
 
+  return (
     <SafeAreaView style={{ flex: 1 }}>
       <Stack.Navigator>
         {token !== null && token.length !== 0 ? (
           <>
             <Stack.Screen name="HomeTabs" component={HomeTabs} options={{ headerShown: false }} />
             <Stack.Screen name="ModifyTaskScreen" component={ModifyTaskScreen} options={{ headerShown: false }} />
-
           </>
+        ) : (isFirstTime === true) ? (
+          <Stack.Screen name="FirstTime" component={FirstTime} options={{ headerShown: false }}>
+          </Stack.Screen>
         ) : (
           <>
             <Stack.Screen name="LoginScreen" component={LoginScreen} options={{ headerShown: false }} />
@@ -191,8 +203,7 @@ const AppNav = () => {
           </>
         )}
       </Stack.Navigator>
-    </SafeAreaView>
-
+    </SafeAreaView >
   );
 };
 
@@ -207,18 +218,18 @@ export default function App() {
 
 
   const storeNoticificationToken = async (token) => {
-    console.log("Storing notification token in App.js");
+    //console.log("Storing notification token in App.js");
     try {
       setExpoPushToken(token)
-      console.log("1")
+      //console.log("1")
       await SecureStore.setItemAsync('expoPushToken', token);
-      console.log("2")
+      //console.log("2")
 
       //ToDo: Write code to store the token in the backend
       //Step 1 get user ID and UserName stored in secure store
       const storedToken = await Common.retrieveUserTokenInMobile()
-      console.log("3")
-      console.log("Stored token is ", storedToken);
+      //console.log("3")
+      //console.log("Stored token is ", storedToken);
       if (storedToken !== null) {
         const payload = {
           params: {
@@ -228,20 +239,20 @@ export default function App() {
           }
         }
         try { // this is for api call to store the token in the backend
-          console.log("Payload in APP. js  is ", payload);
+          //console.log("Payload in APP. js  is ", payload);
           const response = await axios.post(`${BASE_URL}/createUserNotificationToken/`, payload, {
             headers: {
               "Content-Type": "application/json"
             }
           });
-          console.log("Response from API to store notification token is ", response.data);
+          //console.log("Response from API to store notification token is ", response.data);
         } catch (error) {
           console.error('Error in API for storing notification token ', error);
         }
       } else {
         console.log("Setting token as null ,cannot store notification token to DB")
       }
-      console.log("Token stored successfully");
+      //console.log("Token stored successfully");
     } catch (error) {
       console.error("Error storing token:", error);
     }
@@ -252,7 +263,7 @@ export default function App() {
     // Get permission + token
     registerForPushNotificationsAsync()
       .then(token => {
-        console.log("Token received from registerForPushNotificationsAsync:", token);
+        //console.log("Token received from registerForPushNotificationsAsync:", token);
         if (token) {
           storeNoticificationToken(token);
         } else {
@@ -280,7 +291,7 @@ export default function App() {
 
   async function registerForPushNotificationsAsync() {
     let token;
-    console.log("Registering for push notifications...");
+    //console.log("Registering for push notifications...");
 
     try {
       if (Platform.OS === 'android') {
@@ -293,11 +304,11 @@ export default function App() {
         });
       }
 
-      console.log("just before checking if device is physical");
-      console.log("Device.isDevice is ", Device.isDevice);
+      //console.log("just before checking if device is physical");
+      //console.log("Device.isDevice is ", Device.isDevice);
 
       if (Device.isDevice) {
-        console.log("device is physical");
+        //console.log("device is physical");
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
         let finalStatus = existingStatus;
 
@@ -316,14 +327,14 @@ export default function App() {
         // Get project ID from app.json via Constants
         try {
           const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-          console.log('Project ID from app.json:', projectId);
+          //console.log('Project ID from app.json:', projectId);
 
           if (projectId) {
             const expoPushToken = await Notifications.getExpoPushTokenAsync({
               projectId: projectId
             });
             token = expoPushToken.data;
-            console.log('Expo push token with project ID:', token);
+            //console.log('Expo push token with project ID:', token);
           } else {
             console.log('No project ID found, using fallback method');
             const expoPushToken = await Notifications.getExpoPushTokenAsync();
@@ -346,9 +357,9 @@ export default function App() {
         console.log('Must use physical device for Push Notifications');
         return null;
       }
-      console.log("Token registered successfully:", token);
+      //console.log("Token registered successfully:", token);
       // Return the token
-      console.log("Returning token from registerForPushNotificationsAsync:", token);
+      //console.log("Returning token from registerForPushNotificationsAsync:", token);
       return token;
     } catch (error) {
       console.error('Error in registerForPushNotificationsAsync:', error);

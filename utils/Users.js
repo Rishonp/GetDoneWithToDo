@@ -88,6 +88,53 @@ class Users {
 }
 export default Users;
 
+class taskcal {
+    constructor(uniqueidentifyer, eventid, maintask_uniqueidentifyer) {
+        this.uniqueidentifyer = uniqueidentifyer;
+        this.eventid = eventid;
+        this.maintask_uniqueidentifyer = maintask_uniqueidentifyer;
+    }
+
+    static fromDict(data) {
+        return new taskcal(
+            data.uniqueidentifyer || '',
+            data.eventid || '',
+            data.maintask_uniqueidentifyer || ''
+        );
+    }
+
+
+    toDict() {
+        return {
+            uniqueidentifyer: this.uniqueidentifyer,
+            eventid: this.eventid,
+            maintask_uniqueidentifyer: this.maintask_uniqueidentifyer,
+        };
+    }
+
+    toStringDict() {
+        return {
+            uniqueidentifyer: String(this.uniqueidentifyer),
+            eventid: String(this.eventid),
+            maintask_uniqueidentifyer: String(this.maintask_uniqueidentifyer),
+        };
+    }
+
+    static fromStringDict(strData) {
+        return new MainTasks(
+            strData.uniqueidentifyer || '',
+            strData.eventid || '',
+            strData.maintask_uniqueidentifyer || '',
+        );
+    }
+
+}
+
+export { taskcal }
+
+
+
+
 class MainTasks {
     constructor(userid, tasktext, addtocal, priority, startdatetime, enddatetime, donestatus, donestatus_datetime, remarks, addedby_userid, addedby_datetime, uniqueidentifyer, taskack, taskack_datetime) {
         this.userid = userid;
