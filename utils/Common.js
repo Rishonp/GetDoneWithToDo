@@ -104,12 +104,12 @@ export const validateTimeZone = (timeZone) => {
 
 // Create event
 export const createEvent = async (title, location, startDate, endDate, notes, timeZone) => {
-    if (!(await requestPermission())) return;
+    if (!(await requestPermission())) return null;
 
     const calendarId = await getDefaultCalendarId();
     if (!calendarId) {
         Alert.alert('Error', 'No calendar found on this device.');
-        return;
+        return null;
     }
 
     // Get the device timezone if not provided
@@ -278,7 +278,7 @@ export const openInCalendar = (eventId) => {
 }
 
 export const handleNotification = async (taskItem, to_userid, userid, username, commingFrom) => {
-    console.log("handleNotification called with taskItem", taskItem, "to_userid", to_userid, "userid", userid, "username", username, "comingFrom", commingFrom);
+    //console.log("handleNotification called with taskItem", taskItem, "to_userid", to_userid, "userid", userid, "username", username, "comingFrom", commingFrom);
     let userPushToken
     // First, get the target user's push token from your database
     const targetUserId = to_userid;      // "71f424c6-3fbf-44a9-8e91-64c1e9e92b6e"; // Replace with the actual target user ID
@@ -638,7 +638,14 @@ export const convertDateToStringDDMMYYYYHHMMSS = (date) => {
 export const formatToLocalDateString_inputIsDataObj = (date) => {
     if (!date) return '';
     if (!(date instanceof Date)) return '';
-    return date.toLocaleString(); // Local formata
+    return date.toLocaleString(undefined, {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
 };
 
 export const formatToUTCString__inputIsDataObj = (date) => {
@@ -692,7 +699,7 @@ export const retrieveFirstTimeInMobile = async () => {
     //console.log("retrieveFirstTimeInMobile result", JSON.parse(result) == "Y");
     //console.log("retrieveFirstTimeInMobile result", JSON.parse(result) == "N");
     if (result) {
-        return result == "Y" ? true : false;
+        return result === "Y" ? true : false;
     } else {
         return true;
     }
@@ -717,7 +724,7 @@ export const deleteUserTokenInMobile = async () => {
     try {
 
         await SecureStore.deleteItemAsync('token');
-        console.log("token sucesfully deleted")
+        //console.log("token sucesfully deleted")
         return true
     } catch (error) {
         console.log("error deleting token", error)

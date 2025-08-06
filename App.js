@@ -1,5 +1,5 @@
 import React, { useEffect, useState, createContext, useContext, act, useRef } from 'react';
-import { View, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -62,14 +62,38 @@ const Tab = createBottomTabNavigator();
 
 const EmptyLogoutComponent = () => null;
 
+
 const HomeTabs = () => {
   const { setToken, setCurrentUsrToken } = useContext(AuthContext);
-  const handleLogout = async () => {
-    console.log("Logout button pressed");
+
+
+  const onLogout = async () => {
+    await Common.deleteFirstTimeinMobile()
     await Common.deleteUserTokenInMobile()
     setToken(null)
     setCurrentUsrToken(null)
-    console.log("Logout button done successfully");
+
+  }
+  const handleCancel = () => {
+    //console.log("Logout cancelled");
+  }
+  const handleLogout = async () => {
+    Alert.alert(
+      "Are you sure?",
+      "Do you want to proceed?",
+      [
+        {
+          text: "Cancel",
+          onPress: handleCancel,
+          style: "cancel"
+        },
+        {
+          text: "OK",
+          onPress: onLogout
+        }
+      ],
+      { cancelable: false }
+    );
   };
 
 
@@ -185,17 +209,18 @@ const AppNav = () => {
   if (loading) return <SplashScreen />;
   //console.log("AppNav is rendering with firstTime:", isFirstTime, " and token:", token);
 
+  //console.log("AppNav is rendering", isFirstTime, token);
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <Stack.Navigator>
-        {token !== null && token.length !== 0 ? (
+        {isFirstTime === true ? (
+          <Stack.Screen name="FirstTime" component={FirstTime} options={{ headerShown: false }} />
+        ) : token !== null && token.length !== 0 ? (
           <>
             <Stack.Screen name="HomeTabs" component={HomeTabs} options={{ headerShown: false }} />
             <Stack.Screen name="ModifyTaskScreen" component={ModifyTaskScreen} options={{ headerShown: false }} />
           </>
-        ) : (isFirstTime === true) ? (
-          <Stack.Screen name="FirstTime" component={FirstTime} options={{ headerShown: false }}>
-          </Stack.Screen>
         ) : (
           <>
             <Stack.Screen name="LoginScreen" component={LoginScreen} options={{ headerShown: false }} />
@@ -250,7 +275,7 @@ export default function App() {
           console.error('Error in API for storing notification token ', error);
         }
       } else {
-        console.log("Setting token as null ,cannot store notification token to DB")
+        //console.log("Setting token as null ,cannot store notification token to DB")
       }
       //console.log("Token stored successfully");
     } catch (error) {
@@ -313,9 +338,9 @@ export default function App() {
         let finalStatus = existingStatus;
 
         if (existingStatus !== 'granted') {
-          console.log("status is not granted, requesting permissions");
+          //console.log("status is not granted, requesting permissions");
           const { status } = await Notifications.requestPermissionsAsync();
-          console.log("status after requesting permissions is ", status);
+          //console.log("status after requesting permissions is ", status);
           finalStatus = status;
         }
 

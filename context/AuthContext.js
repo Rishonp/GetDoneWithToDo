@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }) => {
                     //console.log("storedToken Is", storedToken.token.access_token)
                     //console.log("also storedTokenIs", storedToken)
                 } else {
-                    console.log("Setting token as null")
+                    //console.log("Setting token as null")
                     setToken(null)
                     setCurrentUsrToken(null)
                 }

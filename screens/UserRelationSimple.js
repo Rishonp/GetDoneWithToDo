@@ -111,6 +111,7 @@ const UserRelationSimple = ({ route, navigation }) => {
             setRelationUserID('');
             setRelationUserName('');
             setuserrelation_uniqueIdentifier('');
+            onFormLoadFunction();
         }, [])
     );
 

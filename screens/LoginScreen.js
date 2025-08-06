@@ -29,7 +29,7 @@ const LoginScreen = ({ route, navigation }) => {
 
 
     const handleTheLogin = () => {
-        console.log("handleTheLogin called 1");
+        //console.log("handleTheLogin called 1");
         const user = new Users("", username_s, "", userpass_hashed_s, new Date(), 1)
         const tkn = new Token("", "bearer", new Date(), "", username_s)
 
@@ -38,17 +38,17 @@ const LoginScreen = ({ route, navigation }) => {
         //console.log("sending1111111")
         //console.log("login dict nmnmnmmnmnmnmn", usertoken_dict)
         //console.log("BASE_URL", BASE_URL);
-        console.log("handleTheLogin called 2");
+        //console.log("handleTheLogin called 2");
         axios
             .post(`${BASE_URL}/LogInUserNew1/`, { params: usertoken_dict })
             .then((response) => {
                 setMessage("login successful..refreshing token")
-                console.log("handleTheLogin called 2.5");
+                //console.log("handleTheLogin called 2.5");
 
                 //console.log("response!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                 //console.log(response.data)
                 Common.storeUserTokenInMobile_Dict(response.data).then((responseDict) => {
-                    console.log("good till here1 ")
+                    //console.log("good till here1 ")
                     if (responseDict != null) {
                         //now write code tyo move to Home screen
                         //console.log("responseDict is ")
@@ -57,25 +57,25 @@ const LoginScreen = ({ route, navigation }) => {
                         //console.log("uerTkn is ... ")
                         //console.log(usrTkn)
                         //console.log("good till here2 ")
-                        console.log("good till here2 from handlelogin")
+                        //console.log("good till here2 from handlelogin")
                         setToken(usrTkn.token.access_token)
-                        console.log("good till here3 from handlelogin")
+                        //console.log("good till here3 from handlelogin")
                         setCurrentUsrToken(usrTkn)
-                        console.log("good till here4 from handlelogin")
-                        console.log("setCurrentUsrToken called in login with    ", usrTkn)
-                        console.log("handleTheLogin called 3");
+                        //console.log("good till here4 from handlelogin")
+                        //console.log("setCurrentUsrToken called in login with    ", usrTkn)
+                        //console.log("handleTheLogin called 3");
 
                     }
                 }).catch((errorStoringSecureStore) => {
-                    console.log("handleTheLogin called ERRORRRRRRR");
-                    console.log("errorStoringSecureStore", errorStoringSecureStore)
-                    console.log("responseDict", responseDict)
+                    //console.log("handleTheLogin called ERRORRRRRRR");
+                    //console.log("errorStoringSecureStore", errorStoringSecureStore)
+                    //console.log("responseDict", responseDict)
                     setMessage(errorStoringSecureStore)
                 })
             })
             .catch((error) => {
-                console.log("handleTheLogin called ERERERERER");
-                console.log("error1111111", error)
+                //console.log("handleTheLogin called ERERERERER");
+                //console.log("error1111111", error)
                 if (typeof error.response !== 'undefined') {
                     if (error.response.data?.detail) {
                         setMessage(error.response.data.detail)

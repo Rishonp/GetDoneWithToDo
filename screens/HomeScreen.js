@@ -28,6 +28,26 @@ import { Dimensions } from 'react-native';
 //import UserSettingsScreen from './UserSettingsScreen';
 
 
+function returnHrsDays(startDateTime, endDateTime) {
+  const start = new Date(startDateTime);
+  const end = new Date(endDateTime);
+  const now = new Date();
+  let num;
+  let text_num;
+  let days = daysRelativeToDue(startDateTime, endDateTime).days;
+  let hours = daysRelativeToDue(startDateTime, endDateTime).hours;
+  console.log("num Day hours ", days, hours);
+  if (days !== "") {
+    return "days"
+  } else {
+    if (hours !== "") {
+      return "hrs"
+    }
+
+  }
+  return ""
+}
+
 
 function daysRelativeToDue(startDateTime, endDateTime) {
   const start = new Date(startDateTime);
@@ -45,16 +65,27 @@ function daysRelativeToDue(startDateTime, endDateTime) {
   if (now > end) {
     let a = Math.floor((now - end) / MS_PER_DAY);
     if (a === 0) {
-      return { status: 'Now', days: "", color: Common.getColor('amber'), textColor: Common.getColor('amberText') };
+      return { status: 'Now', days: "", hours: "", color: Common.getColor('amber'), textColor: Common.getColor('amberText') };
     } else {
-      return { status: 'Past', days: a, color: Common.getColor('red'), textColor: Common.getColor('redText') };
+      if (a >= 2) {
+        return { status: 'Past', days: a, hours: a * 24, color: Common.getColor('red'), textColor: Common.getColor('redText') };
+      } else {
+        return { status: 'Past', days: "", hours: a * 24, color: Common.getColor('red'), textColor: Common.getColor('redText') };
+      }
+
+
+
     }
   } else {
     let b = Math.ceil((end - now) / MS_PER_DAY);
     if (b === 0) {
-      return { status: 'Now', days: "", color: Common.getColor('amber'), textColor: Common.getColor('amberText') };
+      return { status: 'Now', days: "", hours: "", color: Common.getColor('amber'), textColor: Common.getColor('amberText') };
     } else {
-      return { status: 'Due', days: b, color: Common.getColor('green'), textColor: Common.getColor('greenText') };
+      if (b >= 2) {
+        return { status: 'Due', days: b, hours: b * 24, color: Common.getColor('green'), textColor: Common.getColor('greenText') };
+      } else {
+        return { status: 'Now', days: "", hours: b * 24, color: Common.getColor('green'), textColor: Common.getColor('greenText') };
+      }
     }
 
 
@@ -156,6 +187,15 @@ const styles = StyleSheet.create({
     textAlignVertical: 'center', // For Android
     fontStyle: 'italic', // Italic text
   },
+  smallText: {
+    //color: 'white', // Black text
+    fontSize: 12,
+    fontWeight: '400',
+    alignSelf: 'center', // Align to center of the container
+    textAlignVertical: 'center', // For Android
+    fontStyle: 'italic', // Italic text
+  },
+
 
   smallBlackTextCentre: {
     color: 'black', // Black text
@@ -685,10 +725,29 @@ const SwipeableTaskItem = ({
           <View style={styles.rightColumn}>
             <View style={[styles.cardLeftRight, styles.centerIt, { backgroundColor: daysRelativeToDue(item.startdatetime, item.enddatetime).color }]}>
               <Text style={[styles.smallBlackTextCentre, { color: daysRelativeToDue(item.startdatetime, item.enddatetime).textColor }]}>{daysRelativeToDue(item.startdatetime, item.enddatetime).status}</Text>
-              {daysRelativeToDue(item.startdatetime, item.enddatetime).status !== 'Now' && (
+
+              <Text style={[styles.cardTitleNoMargin, { color: daysRelativeToDue(item.startdatetime, item.enddatetime).textColor }]}>{daysRelativeToDue(item.startdatetime, item.enddatetime).days === "" ? daysRelativeToDue(item.startdatetime, item.enddatetime).hours : daysRelativeToDue(item.startdatetime, item.enddatetime).days}</Text>
+
+
+
+              {/* {daysRelativeToDue(item.startdatetime, item.enddatetime).status !== 'Now' && (
                 <Text style={[styles.cardTitleNoMargin, { color: daysRelativeToDue(item.startdatetime, item.enddatetime).textColor }]}>{daysRelativeToDue(item.startdatetime, item.enddatetime).days}</Text>
               )
-              }
+              } */}
+
+              <Text style={[styles.smallText, { color: daysRelativeToDue(item.startdatetime, item.enddatetime).textColor }]}>
+                {returnHrsDays(item.startdatetime, item.enddatetime)}
+                {/* {daysRelativeToDue(item.startdatetime, item.enddatetime).days === "" ? " hrs" : " days"} */}
+              </Text>
+
+
+              {/* {daysRelativeToDue(item.startdatetime, item.enddatetime).status !== 'Now' && (
+                <Text style={[styles.smallText, { color: daysRelativeToDue(item.startdatetime, item.enddatetime).textColor }]}>
+                  {daysRelativeToDue(item.startdatetime, item.enddatetime).days === "" ? " hrs" : " days"}
+                </Text>
+              )
+              } */}
+
               {findName(item, topORBottom) !== '' && (
                 <View style={styles.rowCentered}>
                   <Text style={[styles.verySmallWhiteText, { color: 'black' }]}>{`${findName(item, topORBottom)}`}</Text>

@@ -34,7 +34,7 @@ const AddTask = ({ route, navigation }) => {
         addtocal: 0,
         priority: 0,
         startdatetime: new Date(),
-        enddatetime: new Date(),
+        enddatetime: new Date(new Date().getTime() + 30 * 60 * 1000), // 30 minutes after startdatetime
         donestatus: 0,
         donestatus_datetime: new Date(),
         remarks: '',
@@ -176,6 +176,7 @@ const AddTask = ({ route, navigation }) => {
             calendarData.priority
         );
         if (!eventId) {
+            Alert.alert("Error", "Failed to add event to calendar. Please try again later.");
             console.log("Failed to create calendar event");
             return;
         }
@@ -209,17 +210,20 @@ const AddTask = ({ route, navigation }) => {
 
 
 
-
-
-
-
-
-
     const handleSave = async () => {
         if (theTask.tasktext.trim() === '') {
             setMessage("Task description required");
             return;
         }
+
+        let msg = Common.validateStartDateAndEndDate(theTask.startdatetime, theTask.enddatetime);
+        if (msg.length > 0) {
+            Alert.alert("Error", msg);
+            return;
+        }
+
+
+
         if (selectedId == null || selectedId === undefined || selectedId === '') {
             // this means user has not selected any relation from the list
             // no need to do anything as task will be added for self
@@ -273,7 +277,7 @@ const AddTask = ({ route, navigation }) => {
             addtocal: 0,
             priority: 0,
             startdatetime: new Date(),
-            enddatetime: new Date(),
+            enddatetime: new Date(new Date().getTime() + 30 * 60 * 1000), // 30 minutes after startdatetime
             donestatus: 0,
             donestatus_datetime: new Date(),
             remarks: '',
@@ -345,11 +349,11 @@ const AddTask = ({ route, navigation }) => {
 
     const handleConfirmStartPicker_time = (selectedTime) => {
         hideStartTimePicker();
-        let msg = Common.validateStartDateAndEndDate(theTask.startdatetime, Common.SlidedDateTime(theTask.startdatetime, selectedTime));
-        if (msg.length > 0) {
-            Alert.alert("Error", msg);
-            return;
-        }
+        // let msg = Common.validateStartDateAndEndDate(theTask.startdatetime, Common.SlidedDateTime(theTask.startdatetime, selectedTime));
+        // if (msg.length > 0) {
+        //     Alert.alert("Error", msg);
+        //     return;
+        // }
         theTask.startdatetime = Common.SlidedDateTime(theTask.startdatetime, selectedTime);
         setTheTask({ ...theTask, startdatetime: theTask.startdatetime });
     };
@@ -357,11 +361,11 @@ const AddTask = ({ route, navigation }) => {
 
     const handleConfirmEndPicker_time = (selectedTime) => {
         hideEndTimePicker();
-        let msg = Common.validateStartDateAndEndDate(theTask.startdatetime, Common.SlidedDateTime(theTask.enddatetime, selectedTime));
-        if (msg.length > 0) {
-            Alert.alert("Error", msg);
-            return;
-        }
+        // let msg = Common.validateStartDateAndEndDate(theTask.startdatetime, Common.SlidedDateTime(theTask.enddatetime, selectedTime));
+        // if (msg.length > 0) {
+        //     Alert.alert("Error", msg);
+        //     return;
+        // }
         theTask.enddatetime = Common.SlidedDateTime(theTask.enddatetime, selectedTime);
         setTheTask({ ...theTask, enddatetime: theTask.enddatetime });
     };
@@ -372,11 +376,11 @@ const AddTask = ({ route, navigation }) => {
         hideStartDatePicker();
         // we ned to pick only the date part and not the time part 
         let actualPickedDate = Common.takeDateFromOneAndTimeFromOther(date, theTask.startdatetime);
-        let msg = Common.validateStartDateAndEndDate(actualPickedDate, theTask.enddatetime);
-        if (msg.length > 0) {
-            Alert.alert("Error", msg);
-            return;
-        }
+        // let msg = Common.validateStartDateAndEndDate(actualPickedDate, theTask.enddatetime);
+        // if (msg.length > 0) {
+        //     Alert.alert("Error", msg);
+        //     return;
+        // }
 
         setTheTask({ ...theTask, startdatetime: actualPickedDate });
     };
@@ -384,11 +388,11 @@ const AddTask = ({ route, navigation }) => {
     const handleConfirmEndPicker = (date) => {
         hideEndDatePicker();
         let actualPickedDate = Common.takeDateFromOneAndTimeFromOther(date, theTask.enddatetime);
-        let msg = Common.validateStartDateAndEndDate(theTask.startdatetime, actualPickedDate);
-        if (msg.length > 0) {
-            Alert.alert("Error", msg);
-            return;
-        }
+        // let msg = Common.validateStartDateAndEndDate(theTask.startdatetime, actualPickedDate);
+        // if (msg.length > 0) {
+        //     Alert.alert("Error", msg);
+        //     return;
+        // }
         setTheTask({ ...theTask, enddatetime: actualPickedDate });
     };
     const showStartDatePicker = () => {
@@ -493,16 +497,18 @@ const AddTask = ({ route, navigation }) => {
                         <View style={styles.middleSection}>
                             <View style={styles.container}>
                                 <TextInput
+                                    multiline={true}
+                                    numberOfLines={3}
+                                    textAlignVertical="top"
                                     style={styles.input}
                                     value={theTask.tasktext}
                                     onChangeText={(text) => setTheTask({ ...theTask, tasktext: text })}
                                     placeholder="add a new Task..."
                                 />
 
-                                <View style={[styles.row, { paddingRight: 10, marginBottom: 20 }]}>
+                                {/* <View style={[styles.row, { paddingRight: 10, marginBottom: 20 }]}>
                                     <Text style={styles.largeText}>Done?</Text>
 
-                                    {/* <Switch style={styles.switch} value={theTask.donestatus == 1 ? true : false} onValueChange={(value) => setTheTask({ ...theTask, donestatus: value == true ? 1 : 0 })} /> */}
 
                                     <Switch
                                         style={styles.switch}
@@ -515,7 +521,7 @@ const AddTask = ({ route, navigation }) => {
                                         thumbColor={theTask.donestatus == 1 ? Common.getColor("darkgreen") : 'grey'} // White thumb always
                                         ios_backgroundColor={Common.getColor("oldred")} // iOS background when off
                                     />
-                                </View>
+                                </View> */}
 
 
                                 <View style={[styles.row, { paddingRight: 10, marginBottom: 20 }]}>
@@ -599,7 +605,7 @@ const AddTask = ({ route, navigation }) => {
                                         date={theTask.enddatetime}
                                         onConfirm={handleConfirmEndPicker}
                                         onCancel={hideEndDatePicker}
-                                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                        display={Common.getDisplayMode("date")}
 
                                     />
 
@@ -827,14 +833,16 @@ const styles = StyleSheet.create({
         color: '#333',
     },
     input: {
-        height: 58,
+        minHeight: 90, // Increased from 58 to accommodate 3 lines
         borderColor: 'black',
         borderWidth: 1,
         marginBottom: 20,
         borderRadius: 20,
         paddingHorizontal: 12,
+        paddingVertical: 10, // Add vertical padding for better text positioning
         fontSize: 16,
         color: '#000',
+        textAlignVertical: 'top', // Align text to top for multiline
     },
     picker: {
         height: 58,

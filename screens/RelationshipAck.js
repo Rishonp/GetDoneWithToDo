@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect, useFocusEffect } from "react";
+import { useContext, useState, useEffect } from "react";
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, Switch, TouchableOpacity, StatusBar, Platform } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
@@ -7,7 +7,7 @@ import { User, UserRelation } from "../utils/Users";
 import axios from 'axios';
 import Toast from 'react-native-toast-message';
 import { BASE_URL } from "../utils/config";
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as Common from "../utils/Common";
 import { LinearGradient } from 'expo-linear-gradient';
@@ -86,7 +86,7 @@ const RelationshipAck = ({ route, navigation }) => {
           'Content-Type': 'application/json'
         }
       });
-      if (response.data) {
+      if (response?.data?.length > 0) {
         setUserData(response.data);
         //console.log("Response data is ", response.data);
         // Toast.show({
@@ -159,10 +159,15 @@ const RelationshipAck = ({ route, navigation }) => {
 
   }
 
+  useFocusEffect(
+    React.useCallback(() => {
+      onscreenload();
+    }, []));
+
   useEffect(() => {
 
     onscreenload();
-    //ToDO call function to load user name of added by user
+
   }, []);
 
   return (

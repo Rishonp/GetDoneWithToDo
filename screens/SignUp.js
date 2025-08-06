@@ -128,9 +128,10 @@ export default SignUp
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         padding: 24,
-        backgroundColor: '#fff',
+        paddingTop: 50,
+        //backgroundColor: '#fff',
     },
     message: {
         textAlign: 'center',

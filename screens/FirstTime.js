@@ -46,12 +46,18 @@ const FirstTime = () => {
         <GradientBackground>
             <Onboarding
                 showNext={true}
-                showSkip={true}
+                showSkip={false}
                 containerStyles={styles.onboardingContainer}
                 bottomBarStyles={styles.bottomBar}
-                skipToPage={styles.skipButton}
+                //skipToPage={styles.skipButton}
                 nextToPage={styles.nextButton}
                 doneToPage={styles.doneButton}
+                //skipToPage={1} // ✅ Specify the page index to skip to (last page)
+                onScrollToIndexFailed={(info) => {
+                    console.log('ScrollToIndex failed:', info);
+                    // Handle the error gracefully
+                    setFirstTime(); // Just complete the onboarding
+                }}
                 pages={[
                     {
                         backgroundColor: 'transparent',
